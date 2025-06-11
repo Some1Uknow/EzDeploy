@@ -1,11 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, X, Github, ArrowUpRight, LogIn } from 'lucide-react';
+import { Menu, X, Github, ArrowUpRight, LogIn, User, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { useSession, signOut } from "@/lib/auth-client";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { data: session, isPending } = useSession();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-gray-100 z-50">
@@ -35,8 +45,7 @@ export default function Header() {
               className="text-gray-600 hover:text-black transition-colors duration-200 font-medium"
             >
               Documentation
-            </Link>
-            <a
+            </Link>            <a
               href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
@@ -46,13 +55,53 @@ export default function Header() {
               <span className="font-medium">GitHub</span>
               <ArrowUpRight className="w-3 h-3" />
             </a>
-            <Link
-              href="/signin"
-              className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200 font-medium"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>Sign In</span>
-            </Link>
+            
+            {/* Auth Section */}
+            {isPending ? (
+              <div className="w-8 h-8 animate-pulse bg-gray-200 rounded-full"></div>
+            ) : session ? (
+              <div className="flex items-center space-x-4">
+                <Link
+                  href="/dashboard"
+                  className="text-gray-600 hover:text-black transition-colors duration-200 font-medium"
+                >
+                  Dashboard
+                </Link>
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
+                    {session.user.image ? (
+                      <img 
+                        src={session.user.image} 
+                        alt={session.user.name || 'User'} 
+                        className="w-8 h-8 rounded-full"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-gray-500" />
+                      </div>
+                    )}
+                    <span className="text-sm text-gray-700 font-medium">
+                      {session.user.name || session.user.email}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="flex items-center space-x-2 text-gray-600 hover:text-black transition-colors duration-200"
+                    title="Sign Out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Link
+                href="/signin"
+                className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200 font-medium"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In</span>
+              </Link>
+            )}
           </nav>          {/* Mobile menu button */}
           <div className="md:hidden">
             <button

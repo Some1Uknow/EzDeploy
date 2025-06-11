@@ -6,10 +6,23 @@ import DeployForm from "../components/DeployForm";
 import DeploymentsDashboard from "../components/DeploymentsDashboard";
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { useSession } from "@/lib/auth-client";
 
-export default function DeployPage() {
+export default function DashboardPage() {
   const [activeDeployment, setActiveDeployment] = useState<string | null>(null);
   const [showDeployModal, setShowDeployModal] = useState(false);
+  const { data: session, isPending } = useSession();
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -20,7 +33,7 @@ export default function DeployPage() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">
-                Deployments
+                Welcome back, {session?.user.name || session?.user.email}
               </h1>
               <p className="text-gray-600 mt-1">
                 Manage and monitor your application deployments
@@ -38,7 +51,7 @@ export default function DeployPage() {
           {/* Deployments Dashboard */}
           <DeploymentsDashboard onNewDeployment={() => setShowDeployModal(true)} />
         </main>
-      </div>      {/* Deploy Modal */}
+      </div>{/* Deploy Modal */}
       {showDeployModal && (
         <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">

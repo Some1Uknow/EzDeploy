@@ -1,19 +1,57 @@
 "use client";
-import React from "react";
+
+"use client";
+import React, { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Github } from "lucide-react";
+import { signIn, useSession } from "@/lib/auth-client";
 
 export default function SignInPage() {
-  const handleGoogleSignIn = () => {
-    // TODO: Implement Google OAuth
-   
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/dashboard';
+  const { data: session, isPending } = useSession();
+
+  useEffect(() => {
+    if (session && !isPending) {
+      router.push(redirectTo);
+    }
+  }, [session, isPending, router, redirectTo]);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signIn.social({
+        provider: "google",
+        callbackURL: redirectTo,
+      });
+    } catch (error) {
+      console.error("Google sign in error:", error);
+    }
   };
 
-  const handleGithubSignIn = () => {
-    // TODO: Implement GitHub OAuthhttps://www.better-auth.com/llms.txt
-    console.log("GitHub Sign In clicked");
+  const handleGithubSignIn = async () => {
+    try {
+      await signIn.social({
+        provider: "github", 
+        callbackURL: redirectTo,
+      });
+    } catch (error) {
+      console.error("GitHub sign in error:", error);
+    }
   };
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
