@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, Globe, GitBranch, MoreHorizontal, ExternalLink } from 'lucide-react';
+import { Calendar, Globe, GitBranch, MoreHorizontal, ExternalLink, Clock } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
 interface Deployment {
@@ -14,7 +14,11 @@ interface Deployment {
   duration: string;
 }
 
-export default function DeploymentsDashboard() {
+interface DeploymentsDashboardProps {
+  onNewDeployment: () => void;
+}
+
+export default function DeploymentsDashboard({ onNewDeployment }: DeploymentsDashboardProps) {
   const [deployments] = useState<Deployment[]>([
     {
       id: '1',
@@ -44,118 +48,103 @@ export default function DeploymentsDashboard() {
       duration: '45s'
     }
   ]);
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      return `${diffInMinutes}m ago`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours}h ago`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays}d ago`;
+    }
   };
 
+  const extractRepoName = (gitUrl: string) => {
+    const match = gitUrl.match(/\/([^\/]+)(?:\.git)?$/);
+    return match ? match[1] : gitUrl;
+  };
+
+  if (deployments.length === 0) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Globe className="w-8 h-8 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No deployments yet</h3>
+        <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+          Get started by deploying your first project from a Git repository.
+        </p>
+        <button 
+          onClick={onNewDeployment}
+          className="inline-flex items-center px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-gray-900 transition-colors duration-200"
+        >
+          Create First Deployment
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <section className="py-20 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-black mb-4">
-            Recent Deployments
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Monitor and manage all your deployments from a single dashboard. 
-            Track build status, access logs, and manage your deployed applications.
-          </p>
-        </div>
-
-        {/* Dashboard Controls */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-black">Deployment History</h3>
-              <p className="text-gray-600 text-sm">Showing {deployments.length} recent deployments</p>
-            </div>
-            <div className="flex space-x-3">
-              <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 transition-colors duration-200">
-                Filter
-              </button>
-              <button className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors duration-200">
-                New Deployment
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Deployments List */}
-        <div className="space-y-4">
-          {deployments.map((deployment) => (
-            <div 
-              key={deployment.id}
-              className="bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-sm transition-all duration-200"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-4 mb-3">
-                    <h4 className="text-lg font-semibold text-black">
-                      {deployment.projectName}
-                    </h4>
-                    <StatusBadge 
-                      status={deployment.status}
-                      text={deployment.status.charAt(0).toUpperCase() + deployment.status.slice(1)}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                    <div className="flex items-center">
-                      <GitBranch className="w-4 h-4 mr-2" />
-                      <span className="truncate">{deployment.gitUrl}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>{formatDate(deployment.createdAt)}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Globe className="w-4 h-4 mr-2" />
-                      <span>Duration: {deployment.duration}</span>
-                    </div>
-                  </div>
+    <div className="space-y-4">
+      {deployments.map((deployment) => (
+        <div 
+          key={deployment.id}
+          className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors duration-200"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="font-medium text-gray-900 truncate">
+                  {deployment.projectName}
+                </h3>
+                <StatusBadge 
+                  status={deployment.status}
+                  text={deployment.status === 'success' ? 'Ready' : deployment.status.charAt(0).toUpperCase() + deployment.status.slice(1)}
+                />
+              </div>
+              
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-1">
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <span className="truncate max-w-48">{extractRepoName(deployment.gitUrl)}</span>
                 </div>
-
-                <div className="flex items-center space-x-2 ml-4">
-                  <a
-                    href={deployment.deploymentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                    title="Open deployment"
-                  >
-                    <ExternalLink className="w-5 h-5 text-gray-500" />
-                  </a>
-                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200">
-                    <MoreHorizontal className="w-5 h-5 text-gray-500" />
-                  </button>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{formatDate(deployment.createdAt)}</span>
+                </div>
+                <div className="hidden sm:flex items-center gap-1">
+                  <span>•</span>
+                  <span>{deployment.duration}</span>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Empty State (if no deployments) */}
-        {deployments.length === 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Globe className="w-8 h-8 text-gray-400" />
+            <div className="flex items-center gap-2 ml-4">
+              {deployment.status === 'success' && (
+                <a
+                  href={deployment.deploymentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Visit
+                </a>
+              )}
+              <button className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors duration-200">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
             </div>
-            <h3 className="text-xl font-semibold text-black mb-2">No deployments yet</h3>
-            <p className="text-gray-600 mb-6">
-              Deploy your first project to see it appear here.
-            </p>
-            <button className="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-900 transition-colors duration-200">
-              Create First Deployment
-            </button>
           </div>
-        )}
-      </div>
-    </section>
+        </div>
+      ))}
+    </div>
   );
 }
+                

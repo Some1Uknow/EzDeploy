@@ -36,12 +36,6 @@ export default function Header() {
             >
               Documentation
             </Link>
-            <Link 
-              href="/deploy" 
-              className="text-gray-600 hover:text-black transition-colors duration-200 font-medium"
-            >
-              Deploy
-            </Link>
             <a
               href="https://github.com"
               target="_blank"

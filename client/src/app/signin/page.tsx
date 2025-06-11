@@ -7,11 +7,11 @@ import { Github } from "lucide-react";
 export default function SignInPage() {
   const handleGoogleSignIn = () => {
     // TODO: Implement Google OAuth
-    console.log("Google Sign In clicked");
+   
   };
 
   const handleGithubSignIn = () => {
-    // TODO: Implement GitHub OAuth
+    // TODO: Implement GitHub OAuthhttps://www.better-auth.com/llms.txt
     console.log("GitHub Sign In clicked");
   };
 

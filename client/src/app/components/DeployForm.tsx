@@ -12,6 +12,7 @@ import { Check } from 'lucide-react';
 interface DeployFormProps {
   onDeploymentStart: (projectId: string) => void;
   activeDeployment: string | null;
+  onClose?: () => void;
 }
 
 interface DeploymentResponse {
@@ -23,7 +24,7 @@ interface DeploymentResponse {
   message?: string;
 }
 
-export default function DeployForm({ onDeploymentStart, activeDeployment }: DeployFormProps) {
+export default function DeployForm({ onDeploymentStart, activeDeployment, onClose }: DeployFormProps) {
   const [gitUrl, setGitUrl] = useState('');
   const [slug, setSlug] = useState('');
   const [isDeploying, setIsDeploying] = useState(false);
@@ -118,7 +119,6 @@ export default function DeployForm({ onDeploymentStart, activeDeployment }: Depl
       }, (index + 1) * 1000);
     });
   };
-
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -129,140 +129,158 @@ export default function DeployForm({ onDeploymentStart, activeDeployment }: Depl
     }
   };
 
+  const handleSuccess = () => {
+    // Reset form after successful deployment
+    setTimeout(() => {
+      setGitUrl('');
+      setSlug('');
+      setDeploymentResult(null);
+      setLogs([]);
+      onClose?.();
+    }, 3000);
+  };
+
+  useEffect(() => {
+    if (deploymentResult?.status === 'queued') {
+      handleSuccess();
+    }
+  }, [deploymentResult?.status]);
+
   return (
-    <section id="deploy" className="py-20 bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-black mb-4">Deploy Your Project</h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Paste your Git repository URL and deploy your web application in seconds.
-            We support React, Vue, Angular, Next.js, and more.
+    <div className="space-y-6">
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="gitUrl" className="block text-sm font-medium text-gray-900 mb-2">
+            Git Repository URL
+          </label>
+          <div className="relative">
+            <GitBranch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="url"
+              id="gitUrl"
+              value={gitUrl}
+              onChange={(e) => setGitUrl(e.target.value)}
+              placeholder="https://github.com/username/repository"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm"
+              required
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Supports GitHub, GitLab, and Bitbucket repositories
           </p>
         </div>
 
-        {/* Deployment Form */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="gitUrl" className="block text-sm font-medium text-gray-700 mb-2">
-                Git Repository URL *
-              </label>
-              <div className="relative">
-                <GitBranch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="url"
-                  id="gitUrl"
-                  value={gitUrl}
-                  onChange={(e) => setGitUrl(e.target.value)}
-                  placeholder="https://github.com/username/repository.git"
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
-                Project Slug (Optional)
-              </label>
-              <input
-                type="text"
-                id="slug"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                placeholder="my-awesome-project"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Leave empty to auto-generate from repository name
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isDeploying || !gitUrl.trim()}
-              className="w-full bg-black text-white py-3 px-6 rounded-lg font-medium hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
-            >
-              {isDeploying ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Deploying...</span>
-                </>
-              ) : (
-                <span>Deploy Project</span>
-              )}
-            </button>
-          </form>
+        <div>
+          <label htmlFor="slug" className="block text-sm font-medium text-gray-900 mb-2">
+            Project Name (Optional)
+          </label>
+          <input
+            type="text"
+            id="slug"
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder="my-awesome-project"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Leave empty to auto-generate from repository name
+          </p>
         </div>
 
-        {/* Deployment Result */}
-        {deploymentResult && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-            <div className="flex items-start space-x-4">
-              {deploymentResult.status === 'queued' ? (
-                <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
-              ) : (
-                <XCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-1" />
-              )}
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-black mb-2">
-                  {deploymentResult.status === 'queued' ? 'Deployment Queued' : 'Deployment Failed'}
-                </h3>
-                {deploymentResult.data ? (
-                  <div className="space-y-4">
-                    <p className="text-gray-600">
-                      Your project is being deployed. You can access it at:
-                    </p>
-                    <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                      <code className="flex-1 text-sm font-mono text-black">
-                        {deploymentResult.data.url}
-                      </code>                      <button
-                        onClick={() => copyToClipboard(deploymentResult.data!.url)}
-                        className="p-2 hover:bg-gray-200 rounded-md transition-colors duration-200"
-                        title="Copy URL to clipboard"
-                      >
-                        {copied ? (
-                          <Check className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <Copy className="w-4 h-4 text-gray-500" />
-                        )}
-                      </button>
-                      <a
-                        href={deploymentResult.data.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 hover:bg-gray-200 rounded-md transition-colors duration-200"
-                        title="Open deployment in new tab"
-                      >
-                        <ExternalLink className="w-4 h-4 text-gray-500" />
-                      </a>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-600">{deploymentResult.message}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="flex gap-3 pt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isDeploying || !gitUrl.trim()}
+            className="flex-1 bg-black text-white py-2.5 px-4 rounded-lg font-medium hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+          >
+            {isDeploying ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Deploying...</span>
+              </>
+            ) : (
+              <span>Deploy</span>
+            )}
+          </button>
+        </div>
+      </form>
 
-        {/* Build Logs */}
-        {logs.length > 0 && (
-          <div className="bg-black rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Build Logs
-            </h3>
-            <div className="bg-gray-900 rounded-lg p-4 max-h-64 overflow-y-auto">
-              {logs.map((log, index) => (
-                <div key={index} className="text-green-400 font-mono text-sm mb-1">
-                  {log}
+      {/* Deployment Result */}
+      {deploymentResult && (
+        <div className="border-t border-gray-200 pt-6">
+          <div className="flex items-start gap-3">
+            {deploymentResult.status === 'queued' ? (
+              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            ) : (
+              <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1">
+              <h3 className="font-medium text-gray-900 mb-1">
+                {deploymentResult.status === 'queued' ? 'Deployment Started' : 'Deployment Failed'}
+              </h3>
+              {deploymentResult.data ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600">
+                    Your project is being deployed. You can access it at:
+                  </p>
+                  <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border">
+                    <code className="flex-1 text-xs font-mono text-gray-900 truncate">
+                      {deploymentResult.data.url}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(deploymentResult.data!.url)}
+                      className="p-1.5 hover:bg-gray-200 rounded-md transition-colors duration-200"
+                      title="Copy URL"
+                    >
+                      {copied ? (
+                        <Check className="w-3.5 h-3.5 text-green-500" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 text-gray-500" />
+                      )}
+                    </button>
+                    <a
+                      href={deploymentResult.data.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 hover:bg-gray-200 rounded-md transition-colors duration-200"
+                      title="Open deployment"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
+                    </a>
+                  </div>
                 </div>
-              ))}
+              ) : (
+                <p className="text-sm text-gray-600">{deploymentResult.message}</p>
+              )}
             </div>
           </div>
-        )}
-      </div>
-    </section>
+        </div>
+      )}
+
+      {/* Build Logs */}
+      {logs.length > 0 && (
+        <div className="border-t border-gray-200 pt-6">
+          <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Build Logs
+          </h3>
+          <div className="bg-gray-900 rounded-lg p-3 max-h-48 overflow-y-auto">
+            {logs.map((log, index) => (
+              <div key={index} className="text-green-400 font-mono text-xs mb-1">
+                {log}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

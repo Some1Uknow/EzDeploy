@@ -9,6 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.0",
+    "better-auth": "^1.2.8",
+    "dotenv": "^16.5.0",
+    "drizzle-orm": "^0.43.1",
     "lucide-react": "^0.511.0",
     "next": "15.3.2",
     "react": "^19.0.0",
@@ -20,7 +24,9 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.1",
     "tailwindcss": "^4",
+    "tsx": "^4.19.4",
     "typescript": "^5"
   }
 }
