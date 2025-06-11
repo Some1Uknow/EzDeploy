@@ -14,7 +14,7 @@
 
 ## 🏗️ Architecture
 
-EzDeploy consists of three main microservices:
+EzDeploy consists of four main components:
 
 ### 1. API Server (`api-server/`)
 The main API gateway that handles deployment requests and manages the build pipeline.
@@ -41,7 +41,34 @@ A containerized build environment that clones, builds, and uploads projects.
 - S3 upload with proper MIME types
 - Real-time log publishing to Redis
 
-### 3. S3 Reverse Proxy (`s3-reverse-proxy/`)
+### 3. Web Client (`client/`)
+A modern Next.js frontend application that provides a user interface for managing deployments.
+
+**Technology Stack:**
+- **Frontend**: Next.js 15 with React 19 and TypeScript
+- **Styling**: Tailwind CSS v4 with responsive design
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Better Auth for secure user management
+- **Real-time**: Socket.IO client for live build monitoring
+- **Icons**: Lucide React for consistent iconography
+
+**Key Features:**
+- Modern, responsive user interface
+- Real-time deployment monitoring with WebSocket integration
+- Secure user authentication and session management
+- Database-driven deployment tracking and analytics
+- Interactive deployment form with validation
+- Live build logs and status updates
+
+**Pages & Components:**
+- **Landing Page**: Modern hero section with features showcase and call-to-action
+- **Deploy Page**: Interactive deployment form with real-time build monitoring
+- **Authentication**: Secure sign-in/sign-up with Better Auth integration
+- **Documentation**: Comprehensive API and usage documentation
+- **Dashboard**: Analytics and deployment management interface
+- **Architecture View**: Interactive system architecture visualization
+
+### 4. S3 Reverse Proxy (`s3-reverse-proxy/`)
 A lightweight proxy server that routes subdomain requests to the appropriate S3 objects.
 
 **Key Features:**
@@ -59,6 +86,7 @@ Before setting up EzDeploy, ensure you have:
   - S3 bucket for static file hosting
   - VPC with subnets and security groups
 - **Redis Instance** (AWS ElastiCache or external)
+- **PostgreSQL Database** (for user management and deployment tracking)
 - **Docker** (for building the build-server image)
 - **Node.js 18+** for running the services
 
@@ -105,6 +133,25 @@ The build server receives environment variables through ECS task overrides:
 - `S3_ACCESS_KEY` - S3 access key
 - `S3_SECRET_ACCESS_KEY` - S3 secret key
 - `S3_REGION` - S3 region
+
+#### S3 Reverse Proxy Environment
+```env
+# Add any specific configuration for the proxy
+PORT=8000
+```
+
+#### Web Client Environment (`.env.local`)
+```env
+# Database Configuration
+DATABASE_URL=postgresql://username:password@localhost:5432/ezdeploy
+
+# Authentication
+AUTH_SECRET=your-auth-secret-key
+
+# API Configuration
+NEXT_PUBLIC_API_URL=http://localhost:9000
+NEXT_PUBLIC_SOCKET_URL=http://localhost:9999
+```
 
 ### 3. AWS Infrastructure Setup
 
@@ -161,11 +208,42 @@ npm install
 node index.js
 ```
 
+#### Web Client
+```bash
+cd client
+npm install
+# Set up environment variables
+copy .env.example .env.local
+# (Edit .env.local with your configuration)
+
+# Set up database
+npx drizzle-kit generate
+npx drizzle-kit push
+# Start development server
+npm run dev
+```
+
+The web client will be available at http://localhost:3000
+
 ## 🚀 Usage
+
+### Accessing the Application
+
+1. **Web Interface**: Open http://localhost:3000 to access the EzDeploy dashboard
+2. **API Server**: Available at http://localhost:9000 for direct API calls
+3. **Deployed Projects**: Access via subdomain routing through the reverse proxy at http://project-name.localhost:8000
 
 ### Deploying a Project
 
-Send a POST request to the API server:
+Send a POST request to the API server, or use the web interface:
+
+**Option 1: Web Interface**
+1. Navigate to http://localhost:3000
+2. Sign in or create an account
+3. Use the deployment form to enter your Git repository URL
+4. Monitor the build progress in real-time
+
+**Option 2: Direct API Call**
 
 ```bash
 curl -X POST http://localhost:9000/project \
@@ -189,6 +267,14 @@ curl -X POST http://localhost:9000/project \
 
 ### Monitoring Build Progress
 
+**Option 1: Web Interface**
+The web client provides a real-time dashboard for monitoring deployments:
+- Navigate to the Deploy page after starting a deployment
+- View live build logs with automatic scrolling
+- See deployment status updates (queued, building, success, failed)
+- Access deployment URLs directly from the interface
+
+**Option 2: WebSocket Connection**
 Connect to the WebSocket server to receive real-time build logs:
 
 ```javascript
@@ -206,7 +292,15 @@ socket.on('message', (data) => {
 
 ### Testing the Deployment
 
-Use the provided test script:
+Use the provided test script or the web interface:
+
+**Option 1: Web Interface**
+1. Open http://localhost:3000
+2. Navigate to the Deploy page
+3. Enter a Git repository URL
+4. Monitor the real-time build progress
+
+**Option 2: Command Line Testing**
 
 ```bash
 cd api-server
@@ -226,6 +320,19 @@ EzDeploy/
 │   ├── main.sh               # Git clone script
 │   ├── Dockerfile            # Container definition
 │   └── package.json          # Dependencies
+├── client/
+│   ├── src/
+│   │   ├── app/              # Next.js app directory
+│   │   │   ├── components/   # React components
+│   │   │   ├── deploy/       # Deployment page
+│   │   │   ├── documentation/# Documentation page
+│   │   │   └── signin/       # Authentication page
+│   │   └── db/               # Database schema and migrations
+│   ├── public/               # Static assets
+│   ├── package.json          # Frontend dependencies
+│   ├── next.config.ts        # Next.js configuration
+│   ├── drizzle.config.ts     # Database configuration
+│   └── README.md             # Frontend documentation
 ├── s3-reverse-proxy/
 │   ├── index.js              # Proxy server
 │   └── package.json          # Dependencies
@@ -233,6 +340,30 @@ EzDeploy/
 ```
 
 ## 🔧 Configuration
+
+### Database Setup
+
+The web client requires a PostgreSQL database. Set up the database:
+
+1. **Create PostgreSQL Database**:
+```sql
+CREATE DATABASE ezdeploy;
+CREATE USER ezdeploy_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE ezdeploy TO ezdeploy_user;
+```
+
+2. **Configure Database URL**:
+Update your `.env.local` file in the client directory:
+```env
+DATABASE_URL="postgresql://ezdeploy_user:your_password@localhost:5432/ezdeploy"
+```
+
+3. **Run Database Migrations**:
+```bash
+cd client
+npx drizzle-kit generate
+npx drizzle-kit push
+```
 
 ### Supported Project Types
 
@@ -259,11 +390,24 @@ EzDeploy automatically detects and builds projects that:
 | `S3_SECRET_ACCESS_KEY` | S3 secret key | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` |
 | `S3_REGION` | S3 region | `ap-southeast-2` |
 
+#### Required for Web Client
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5432/ezdeploy` |
+| `AUTH_SECRET` | Authentication secret key | `your-32-character-secret-key` |
+| `NEXT_PUBLIC_API_URL` | API server URL | `http://localhost:9000` |
+| `NEXT_PUBLIC_SOCKET_URL` | WebSocket server URL | `http://localhost:9999` |
+
 #### Optional for API Server
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | API server port | `9000` |
 | `SOCKET_PORT` | WebSocket server port | `9999` |
+
+#### Optional for Web Client
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Next.js development server port | `3000` |
 
 ## 🔍 API Reference
 
@@ -386,6 +530,14 @@ ENTRYPOINT ["/home/app/main.sh"]
 - **Symptom**: Files not appearing in deployed site
 - **Solution**: Verify S3 permissions and bucket configuration
 
+#### 5. Database Connection Issues
+- **Symptom**: Authentication or database errors in web client
+- **Solution**: Verify PostgreSQL is running and DATABASE_URL is correct
+
+#### 6. Frontend Build Issues
+- **Symptom**: Next.js application fails to start or build
+- **Solution**: Check Node.js version (18+) and run `npm install` in client directory
+
 ### Debugging Commands
 
 ```bash
@@ -395,11 +547,24 @@ node api-server/index.js
 # Test deployment API
 node api-server/test-deployment.js
 
-# Check ECS task status
+# Check web client locally
+cd client && npm run dev
+
+# Check build status in ECS
 aws ecs list-tasks --cluster your-cluster-name
 
 # View build server logs
 aws logs get-log-events --log-group /ecs/builder-task
+
+# Check database connection
+cd client && npx drizzle-kit studio
+```
+
+# View build server logs
+aws logs get-log-events --log-group /ecs/builder-task
+
+# Check database connection
+cd client && npx drizzle-kit studio
 ```
 
 ## 🤝 Contributing

@@ -8,9 +8,6 @@ require("dotenv").config();
 // Environment variable validation
 const requiredEnvVars = [
   'REDIS_KEY',
-  'REGION',
-  'ACCESS_KEY',
-  'SECRET_ACCESS',
   'S3_BUCKET',
   'S3_ACCESS_KEY',
   'S3_SECRET_ACCESS_KEY',
@@ -67,10 +64,10 @@ io.listen(SOCKET_PORT, () =>
 );
 
 const ecsClient = new ECSClient({
-  region: process.env.REGION,
+  region: process.env.S3_REGION,
   credentials: {
-    accessKeyId: process.env.ACCESS_KEY,
-    secretAccessKey: process.env.SECRET_ACCESS,
+    accessKeyId: process.env.S3_ACCESS_KEY,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
   },
 //  logger: console,
 });
