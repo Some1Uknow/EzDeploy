@@ -1,4 +1,8 @@
 import { BookOpen, Code, Terminal, Settings, ExternalLink } from "lucide-react";
+import { TextAnimate } from './ui/text-animate';
+import { ShimmerButton } from './ui/shimmer-button';
+import { AnimatedGradientText } from './ui/animated-gradient-text';
+import { GridPattern } from './ui/grid-pattern';
 
 export default function Documentation() {
   const docs = [
@@ -66,19 +70,38 @@ const response = await fetch('http://localhost:9000/project', {
 
 const data = await response.json();
 console.log('Deployment URL:', data.data.url);`;
-
   return (
     <>
-      <section id="docs" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="docs" className="relative py-20 bg-white overflow-hidden">
+        {/* Grid Pattern Background */}
+        <GridPattern
+          width={40}
+          height={40}
+          x={-1}
+          y={-1}
+          className="absolute inset-0 h-full w-full fill-gray-400/20 stroke-gray-400/20 [mask-image:radial-gradient(800px_circle_at_center,white,transparent)]"
+        />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-black mb-4">
+            <TextAnimate
+              animation="blurInUp"
+              by="word"
+              className="text-4xl font-bold text-black mb-4"
+              as="h2"
+            >
               Documentation & Guides
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            </TextAnimate>
+            <TextAnimate
+              animation="fadeIn"
+              by="word"
+              delay={0.3}
+              className="text-xl text-gray-600 max-w-3xl mx-auto"
+              as="p"
+            >
               Everything you need to get started with EzDeploy, from basic
               deployments to advanced configuration and automation.
-            </p>
+            </TextAnimate>
           </div>
 
           {/* Documentation Cards */}
@@ -109,13 +132,17 @@ console.log('Deployment URL:', data.data.url);`;
                           {section}
                         </li>
                       ))}
-                    </ul>
-                    <div className="mt-6">
-                      <button className="inline-flex items-center text-black font-medium hover:text-gray-700 transition-colors duration-200">
-                        Read Documentation
-                        <ExternalLink className="w-4 h-4 ml-2" />
-                      </button>
-                    </div>
+                    </ul>            <div className="mt-6">
+              <ShimmerButton
+                className="inline-flex items-center text-white font-medium"
+                shimmerColor="#ffffff"
+                background="rgba(0, 0, 0, 1)"
+                borderRadius="8px"
+              >
+                Read Documentation
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </ShimmerButton>
+            </div>
                   </div>
                 </div>
               </div>
@@ -137,13 +164,16 @@ console.log('Deployment URL:', data.data.url);`;
               <pre className="text-green-400 font-mono text-sm leading-relaxed">
                 <code>{codeExample}</code>
               </pre>
-            </div>
-
-            <div className="mt-6 flex flex-col sm:flex-row gap-4">
-              <button className="inline-flex items-center justify-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-900 transition-colors duration-200">
-                <BookOpen className="w-5 h-5 mr-2" />
-                View Full Documentation
-              </button>
+            </div>            <div className="mt-6 flex flex-col sm:flex-row gap-4">
+              <ShimmerButton
+                className="inline-flex items-center justify-center px-6 py-3 font-medium rounded-lg"
+                shimmerColor="#ffffff"
+                background="rgba(0, 0, 0, 1)"
+                borderRadius="8px"
+              >
+                <BookOpen className="w-5 h-5 mr-2 text-white" />
+                <span className="text-white">View Full Documentation</span>
+              </ShimmerButton>
               <button className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:border-gray-400 hover:text-black transition-colors duration-200">
                 <Code className="w-5 h-5 mr-2" />
                 API Reference

@@ -1,7 +1,7 @@
-import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertCircle, Timer } from 'lucide-react';
 
 interface StatusBadgeProps {
-  status: 'success' | 'error' | 'pending' | 'warning';
+  status: 'success' | 'error' | 'pending' | 'warning' | 'queued';
   text: string;
   className?: string;
 }
@@ -28,13 +28,19 @@ export default function StatusBadge({ status, text, className = '' }: StatusBadg
       textColor: 'text-yellow-700',
       iconColor: 'text-yellow-500',
       borderColor: 'border-yellow-200'
-    },
-    warning: {
+    },    warning: {
       icon: AlertCircle,
       bgColor: 'bg-orange-50',
       textColor: 'text-orange-700',
       iconColor: 'text-orange-500',
       borderColor: 'border-orange-200'
+    },
+    queued: {
+      icon: Timer,
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-700',
+      iconColor: 'text-blue-500',
+      borderColor: 'border-blue-200'
     }
   };
 

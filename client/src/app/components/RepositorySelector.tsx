@@ -1,8 +1,28 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Search, Star, GitFork, Clock, ExternalLink, Github } from 'lucide-react';
-import { GitHubRepository } from '@/lib/hooks/useGitHubRepositories';
+import { useState } from "react";
+import {
+  Search,
+  Star,
+  GitFork,
+  Clock,
+  ExternalLink,
+  Github,
+} from "lucide-react";
+import { GitHubRepository } from "@/lib/hooks/useGitHubRepositories";
+import Image from "next/image";
+
+// React logo component
+const ReactLogo = () => (
+  <Image
+    src="/React.png"
+    alt="React"
+    width={16}
+    height={16}
+    className="w-4 h-4"
+  />
+);
+
 
 interface RepositorySelectorProps {
   repositories: GitHubRepository[];
@@ -13,21 +33,24 @@ interface RepositorySelectorProps {
   onConnectGitHub: () => void;
 }
 
-export default function RepositorySelector({ 
-  repositories, 
-  onSelect, 
-  loading, 
-  error, 
+export default function RepositorySelector({
+  repositories,
+  onSelect,
+  loading,
+  error,
   hasGitHubConnection,
-  onConnectGitHub 
+  onConnectGitHub,
 }: RepositorySelectorProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRepo, setSelectedRepo] = useState<GitHubRepository | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRepo, setSelectedRepo] = useState<GitHubRepository | null>(
+    null
+  );
 
-  const filteredRepositories = repositories.filter(repo =>
-    repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    repo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    repo.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredRepositories = repositories.filter(
+    (repo) =>
+      repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      repo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      repo.full_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleRepoSelect = (repo: GitHubRepository) => {
@@ -40,9 +63,9 @@ export default function RepositorySelector({
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
+
+    if (diffInDays === 0) return "Today";
+    if (diffInDays === 1) return "Yesterday";
     if (diffInDays < 7) return `${diffInDays} days ago`;
     if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
     return `${Math.floor(diffInDays / 30)} months ago`;
@@ -57,7 +80,8 @@ export default function RepositorySelector({
           Connect Your GitHub Account
         </h3>
         <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-          Sign in with GitHub to access and deploy your repositories directly from EzDeploy.
+          Sign in with GitHub to access and deploy your repositories directly
+          from EzDeploy.
         </p>
         <button
           onClick={onConnectGitHub}
@@ -88,9 +112,7 @@ export default function RepositorySelector({
         <h3 className="text-lg font-medium text-gray-900 mb-2">
           Unable to Load Repositories
         </h3>
-        <p className="text-red-600 mb-4 max-w-sm mx-auto text-sm">
-          {error}
-        </p>
+        <p className="text-red-600 mb-4 max-w-sm mx-auto text-sm">{error}</p>
         {!hasGitHubConnection && (
           <button
             onClick={onConnectGitHub}
@@ -122,7 +144,9 @@ export default function RepositorySelector({
       <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg">
         {filteredRepositories.length === 0 ? (
           <div className="p-6 text-center text-gray-500">
-            {searchTerm ? 'No repositories match your search.' : 'No repositories found.'}
+            {searchTerm
+              ? "No repositories match your search."
+              : "No repositories found."}
           </div>
         ) : (
           filteredRepositories.map((repo) => (
@@ -130,30 +154,31 @@ export default function RepositorySelector({
               key={repo.id}
               onClick={() => handleRepoSelect(repo)}
               className={`w-full text-left p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-200 ${
-                selectedRepo?.id === repo.id ? 'bg-blue-50 border-blue-200' : ''
+                selectedRepo?.id === repo.id ? "bg-blue-50 border-blue-200" : ""
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
+                  {" "}
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-medium text-gray-900 truncate">
                       {repo.name}
-                    </h3>
+                    </h3>{" "}
+                    <span>
+                      <ReactLogo />
+                    </span>
                     {repo.private && (
                       <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
                         Private
                       </span>
                     )}
-                    {repo.fork && (
-                      <GitFork className="w-3 h-3 text-gray-400" />
-                    )}
+                    {repo.fork && <GitFork className="w-3 h-3 text-gray-400" />}
                   </div>
-                    {repo.description && (
+                  {repo.description && (
                     <p className="text-sm text-gray-600 mb-2 line-clamp-2 overflow-hidden">
                       {repo.description}
                     </p>
                   )}
-                  
                   <div className="flex items-center gap-4 text-xs text-gray-500">
                     {repo.language && (
                       <div className="flex items-center gap-1">
@@ -161,19 +186,19 @@ export default function RepositorySelector({
                         <span>{repo.language}</span>
                       </div>
                     )}
-                    
+
                     <div className="flex items-center gap-1">
                       <Star className="w-3 h-3" />
                       <span>{repo.stargazers_count}</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       <span>Updated {formatDate(repo.pushed_at)}</span>
                     </div>
                   </div>
                 </div>
-                
+
                 <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
               </div>
             </button>

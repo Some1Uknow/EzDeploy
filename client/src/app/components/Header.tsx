@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Menu, X, Github, ArrowUpRight, LogIn, User, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { useSession, signOut } from "@/lib/auth-client";
+import { ShimmerButton } from './ui/shimmer-button';
+import { SparklesText } from './ui/sparkles-text';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,14 +22,17 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-gray-100 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
+        <div className="flex justify-between items-center h-16">          {/* Logo */}
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <Link href="/">
-                <h1 className="text-2xl font-bold text-black tracking-tight cursor-pointer">
-                  Ez<span className="text-gray-600">Deploy</span>
-                </h1>
+                <SparklesText 
+                  className="text-2xl font-bold text-black tracking-tight cursor-pointer"
+                  sparklesCount={6}
+                  colors={{ first: "#4f46e5", second: "#7c3aed" }}
+                >
+                  EzDeploy
+                </SparklesText>
               </Link>
             </div>
           </div>
@@ -92,15 +97,16 @@ export default function Header() {
                     <LogOut className="w-4 h-4" />
                   </button>
                 </div>
-              </div>
-            ) : (
-              <Link
-                href="/signin"
-                className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200 font-medium"
+              </div>            ) : (              <ShimmerButton
+                className="flex items-center space-x-2 font-medium"
+                shimmerColor="#ffffff"
+                background="rgba(0, 0, 0, 1)"
+                borderRadius="8px"
+                onClick={() => window.location.href = '/signin'}
               >
-                <LogIn className="w-4 h-4" />
-                <span>Sign In</span>
-              </Link>
+                <LogIn className="w-4 h-4 text-white" />
+                <span className="text-white">Sign In</span>
+              </ShimmerButton>
             )}
           </nav>          {/* Mobile menu button */}
           <div className="md:hidden">

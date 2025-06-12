@@ -1,4 +1,8 @@
 import { Server, Database, Globe, ArrowRight, Code, Cloud } from 'lucide-react';
+import { TextAnimate } from './ui/text-animate';
+import { NumberTicker } from './ui/number-ticker';
+import { GridPattern } from './ui/grid-pattern';
+import { Ripple } from './ui/ripple';
 
 export default function Architecture() {
   const services = [
@@ -39,24 +43,49 @@ export default function Architecture() {
       color: 'bg-purple-50 text-purple-600',
     },
   ];
-
   return (
-    <section id="architecture" className="py-20 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="architecture" className="relative py-20 bg-gray-50 overflow-hidden">
+      {/* Grid Pattern Background */}
+      <GridPattern
+        width={50}
+        height={50}
+        x={-1}
+        y={-1}
+        strokeDasharray="4 2"
+        className="absolute inset-0 h-full w-full fill-gray-400/30 stroke-gray-400/30 [mask-image:radial-gradient(700px_circle_at_center,white,transparent)]"
+      />
+      
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-black mb-4">
+          <TextAnimate
+            animation="blurInUp"
+            by="word"
+            className="text-4xl font-bold text-black mb-4"
+            as="h2"
+          >
             Microservices Architecture
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          </TextAnimate>
+          <TextAnimate
+            animation="fadeIn"
+            by="word"
+            delay={0.3}
+            className="text-xl text-gray-600 max-w-3xl mx-auto"
+            as="p"
+          >
             EzDeploy is built with a modern microservices architecture that ensures scalability, 
             reliability, and maintainability across all deployment workflows.
-          </p>
-        </div>
-
-        {/* Architecture Diagram */}
+          </TextAnimate>
+        </div>        {/* Architecture Diagram */}
         <div className="mb-16">
-          <div className="bg-white rounded-2xl border border-gray-200 p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+          <div className="relative bg-white rounded-2xl border border-gray-200 p-8 overflow-hidden">
+            {/* Ripple effect for the center diagram */}
+            <Ripple 
+              mainCircleSize={150}
+              mainCircleOpacity={0.1}
+              numCircles={6}
+              className="absolute inset-0"
+            />
+            <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
               {services.map((service, index) => (
                 <div key={index} className="relative">
                   <div className="bg-gray-50 rounded-xl p-6 h-full">

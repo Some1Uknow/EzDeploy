@@ -1,19 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { GitBranch, Github } from 'lucide-react';
-import { Loader2 } from 'lucide-react';
-import { CheckCircle } from 'lucide-react';
-import { XCircle } from 'lucide-react';
-import { ExternalLink } from 'lucide-react';
-import { Copy } from 'lucide-react';
-import { Check } from 'lucide-react';
-import { useGitHubRepositories, GitHubRepository } from '@/lib/hooks/useGitHubRepositories';
-import { signIn, useSession } from '@/lib/auth-client';
-import RepositorySelector from './RepositorySelector';
+import { useState } from "react";
+import { GitBranch, Github } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { CheckCircle } from "lucide-react";
+import { XCircle } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { Copy } from "lucide-react";
+import { Check } from "lucide-react";
+import {
+  useGitHubRepositories,
+  GitHubRepository,
+} from "@/lib/hooks/useGitHubRepositories";
+import { signIn } from "@/lib/auth-client";
+import RepositorySelector from "./RepositorySelector";
 
 interface DeployFormProps {
-  onDeploymentStart: (projectId: string) => void;
+  onDeploymentStart: (deployment: {
+    projectSlug: string;
+    gitUrl: string;
+    url: string;
+  }) => void;
   activeDeployment: string | null;
   onClose?: () => void;
 }
@@ -27,28 +34,31 @@ interface DeploymentResponse {
   message?: string;
 }
 
-export default function DeployForm({ onDeploymentStart, activeDeployment, onClose }: DeployFormProps) {
-  const [gitUrl, setGitUrl] = useState('');
-  const [slug, setSlug] = useState('');
+export default function DeployForm({
+  onDeploymentStart,
+  activeDeployment,
+  onClose,
+}: DeployFormProps) {
+  const [gitUrl, setGitUrl] = useState("");
+  const [slug, setSlug] = useState("");
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deploymentResult, setDeploymentResult] = useState<DeploymentResponse | null>(null);
+  const [deploymentResult, setDeploymentResult] =
+    useState<DeploymentResponse | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
-  const [validationError, setValidationError] = useState('');
-  const [deploymentMode, setDeploymentMode] = useState<'github' | 'manual'>('github');
-  const [selectedRepository, setSelectedRepository] = useState<GitHubRepository | null>(null);
-  
-  const { data: session } = useSession();
-  const { repositories, loading: reposLoading, error: reposError, hasGitHubConnection, refetch } = useGitHubRepositories();
+  const [deploymentMode, setDeploymentMode] = useState<"github" | "manual">(
+    "github"
+  );
+  const [selectedRepository, setSelectedRepository] =
+    useState<GitHubRepository | null>(null);
 
-  const validateGitUrl = (url: string) => {
-    const gitUrlPattern = /^https?:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[\w\-\.]+\/[\w\-\.]+\.git?$/i;
-    return gitUrlPattern.test(url);
-  };
-  const validateSlug = (slug: string) => {
-    const slugPattern = /^[a-z0-9\-]+$/;
-    return slug === '' || slugPattern.test(slug);
-  };
+  const {
+    repositories,
+    loading: reposLoading,
+    error: reposError,
+    hasGitHubConnection,
+    refetch,
+  } = useGitHubRepositories();
 
   const handleConnectGitHub = async () => {
     try {
@@ -60,44 +70,47 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
       console.error("GitHub sign in error:", error);
     }
   };
-
   const handleRepositorySelect = (repository: GitHubRepository) => {
     setSelectedRepository(repository);
     setGitUrl(repository.clone_url);
-    setSlug(repository.name.toLowerCase().replace(/[^a-z0-9\-]/g, '-'));
-  };  const handleSubmit = async (e: React.FormEvent) => {
+    // Don't auto-set slug - let user decide
+  };
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Check deployment mode and validate accordingly
-    if (deploymentMode === 'github' && !selectedRepository) {
+    if (deploymentMode === "github" && !selectedRepository) {
       setDeploymentResult({
-        status: 'error',
-        message: 'Please select a repository from your GitHub account',
-      });
-      return;
-    }
-    
-    if (deploymentMode === 'manual' && !gitUrl.trim()) {
-      setDeploymentResult({
-        status: 'error',
-        message: 'Please enter a Git repository URL',
+        status: "error",
+        message: "Please select a repository from your GitHub account",
       });
       return;
     }
 
-    const finalGitUrl = deploymentMode === 'github' 
-      ? selectedRepository?.clone_url || ''
-      : gitUrl.trim();
+    if (deploymentMode === "manual" && !gitUrl.trim()) {
+      setDeploymentResult({
+        status: "error",
+        message: "Please enter a Git repository URL",
+      });
+      return;
+    }
+
+    const finalGitUrl =
+      deploymentMode === "github"
+        ? selectedRepository?.clone_url || ""
+        : gitUrl.trim();
 
     if (!finalGitUrl) return;
 
     // Validate Git URL for manual mode
-    if (deploymentMode === 'manual') {
-      const gitUrlPattern = /^https?:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[\w\-\.]+\/[\w\-\.]+\.git?$/i;
+    if (deploymentMode === "manual") {
+      const gitUrlPattern =
+        /^https?:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[\w\-\.]+\/[\w\-\.]+\.git?$/i;
       if (!gitUrlPattern.test(finalGitUrl)) {
         setDeploymentResult({
-          status: 'error',
-          message: 'Please enter a valid Git repository URL (GitHub, GitLab, or Bitbucket)',
+          status: "error",
+          message:
+            "Please enter a valid Git repository URL (GitHub, GitLab, or Bitbucket)",
         });
         return;
       }
@@ -108,8 +121,9 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
       const slugPattern = /^[a-z0-9\-]+$/;
       if (!slugPattern.test(slug.trim())) {
         setDeploymentResult({
-          status: 'error',
-          message: 'Project slug must contain only lowercase letters, numbers, and hyphens',
+          status: "error",
+          message:
+            "Project slug must contain only lowercase letters, numbers, and hyphens",
         });
         return;
       }
@@ -120,76 +134,49 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
     setLogs([]);
 
     try {
-      const response = await fetch('http://localhost:9000/project', {
-        method: 'POST',
+      const response = await fetch("http://localhost:9000/project", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           gitURL: finalGitUrl,
           slug: slug.trim() || undefined,
         }),
       });
-
       const data = await response.json();
-      setDeploymentResult(data);
-
-      if (data.status === 'queued' && data.data?.projectSlug) {
-        onDeploymentStart(data.data.projectSlug);
-        simulateLogs();
+      if (data.status === "queued" && data.data?.projectSlug) {
+        // Pass deployment data to parent component
+        onDeploymentStart({
+          projectSlug: data.data.projectSlug,
+          gitUrl: finalGitUrl,
+          url: data.data.url,
+        });
+        // Close modal immediately
+        onClose?.();
+      } else {
+        setDeploymentResult(data);
       }
     } catch (error) {
       setDeploymentResult({
-        status: 'error',
-        message: 'Failed to connect to deployment service',
+        status: "error",
+        message: "Failed to connect to deployment service",
       });
     } finally {
       setIsDeploying(false);
     }
   };
 
-  const simulateLogs = () => {
-    const logMessages = [
-      'Initializing deployment...',
-      'Cloning repository...',
-      'Installing dependencies...',
-      'Running build process...',
-      'Uploading to S3...',
-      'Deployment completed successfully!',
-    ];
-
-    logMessages.forEach((message, index) => {
-      setTimeout(() => {
-        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
-      }, (index + 1) * 1000);
-    });
-  };
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      console.error("Failed to copy to clipboard:", error);
     }
-  };
-  const handleSuccess = () => {
-    // Reset form after successful deployment
-    setTimeout(() => {
-      setGitUrl('');
-      setSlug('');
-      setSelectedRepository(null);
-      setDeploymentResult(null);
-      setLogs([]);
-      onClose?.();
-    }, 3000);
   };
 
-  useEffect(() => {
-    if (deploymentResult?.status === 'queued') {
-      handleSuccess();
-    }
-  }, [deploymentResult?.status]);
   return (
     <div className="space-y-6">
       {/* Form */}
@@ -198,11 +185,11 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
         <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
           <button
             type="button"
-            onClick={() => setDeploymentMode('github')}
+            onClick={() => setDeploymentMode("github")}
             className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 ${
-              deploymentMode === 'github'
-                ? 'bg-white text-black shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+              deploymentMode === "github"
+                ? "bg-white text-black shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
             }`}
           >
             <Github className="w-4 h-4" />
@@ -210,11 +197,11 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
           </button>
           <button
             type="button"
-            onClick={() => setDeploymentMode('manual')}
+            onClick={() => setDeploymentMode("manual")}
             className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 ${
-              deploymentMode === 'manual'
-                ? 'bg-white text-black shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+              deploymentMode === "manual"
+                ? "bg-white text-black shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
             }`}
           >
             <GitBranch className="w-4 h-4" />
@@ -223,7 +210,7 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
         </div>
 
         {/* Repository Selection */}
-        {deploymentMode === 'github' ? (
+        {deploymentMode === "github" ? (
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-3">
               Select Repository
@@ -239,17 +226,19 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
           </div>
         ) : (
           <div>
-            <label htmlFor="gitUrl" className="block text-sm font-medium text-gray-900 mb-2">
+            <label
+              htmlFor="gitUrl"
+              className="block text-sm font-medium text-gray-900 mb-2"
+            >
               Git Repository URL
             </label>
             <div className="relative">
-              <GitBranch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <GitBranch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />{" "}
               <input
                 type="url"
                 id="gitUrl"
                 value={gitUrl}
                 onChange={(e) => setGitUrl(e.target.value)}
-                placeholder="https://github.com/username/repository"
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm"
                 required
               />
@@ -261,19 +250,21 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
         )}
 
         <div>
-          <label htmlFor="slug" className="block text-sm font-medium text-gray-900 mb-2">
+          <label
+            htmlFor="slug"
+            className="block text-sm font-medium text-gray-900 mb-2"
+          >
             Project Name (Optional)
-          </label>
+          </label>{" "}
           <input
             type="text"
             id="slug"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            placeholder="my-awesome-project"
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm"
-          />
+          />{" "}
           <p className="text-xs text-gray-500 mt-1">
-            Leave empty to auto-generate from repository name
+            Auto-generated from repository name if left empty
           </p>
         </div>
 
@@ -287,7 +278,12 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
           </button>
           <button
             type="submit"
-            disabled={isDeploying || (deploymentMode === 'github' ? !selectedRepository : !gitUrl.trim())}
+            disabled={
+              isDeploying ||
+              (deploymentMode === "github"
+                ? !selectedRepository
+                : !gitUrl.trim())
+            }
             className="flex-1 bg-black text-white py-2.5 px-4 rounded-lg font-medium hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 text-sm"
           >
             {isDeploying ? (
@@ -306,26 +302,31 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
       {deploymentResult && (
         <div className="border-t border-gray-200 pt-6">
           <div className="flex items-start gap-3">
-            {deploymentResult.status === 'queued' ? (
+            {deploymentResult.status === "queued" ? (
               <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
             ) : (
               <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
             )}
             <div className="flex-1">
               <h3 className="font-medium text-gray-900 mb-1">
-                {deploymentResult.status === 'queued' ? 'Deployment Started' : 'Deployment Failed'}
+                {deploymentResult.status === "queued"
+                  ? "Deployment Started"
+                  : "Deployment Failed"}
               </h3>
               {deploymentResult.data ? (
                 <div className="space-y-3">
+                  {" "}
                   <p className="text-sm text-gray-600">
-                    Your project is being deployed. You can access it at:
+                    Your project is being deployed and will be available at:
                   </p>
                   <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border">
                     <code className="flex-1 text-xs font-mono text-gray-900 truncate">
                       {deploymentResult.data.url}
                     </code>
                     <button
-                      onClick={() => copyToClipboard(deploymentResult.data!.url)}
+                      onClick={() =>
+                        copyToClipboard(deploymentResult.data!.url)
+                      }
                       className="p-1.5 hover:bg-gray-200 rounded-md transition-colors duration-200"
                       title="Copy URL"
                     >
@@ -347,7 +348,9 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-600">{deploymentResult.message}</p>
+                <p className="text-sm text-gray-600">
+                  {deploymentResult.message}
+                </p>
               )}
             </div>
           </div>
@@ -357,13 +360,17 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
       {/* Build Logs */}
       {logs.length > 0 && (
         <div className="border-t border-gray-200 pt-6">
+          {" "}
           <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Build Logs
+            Deployment Logs
           </h3>
           <div className="bg-gray-900 rounded-lg p-3 max-h-48 overflow-y-auto">
             {logs.map((log, index) => (
-              <div key={index} className="text-green-400 font-mono text-xs mb-1">
+              <div
+                key={index}
+                className="text-green-400 font-mono text-xs mb-1"
+              >
                 {log}
               </div>
             ))}

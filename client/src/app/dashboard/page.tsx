@@ -11,7 +11,22 @@ import { useSession } from "@/lib/auth-client";
 export default function DashboardPage() {
   const [activeDeployment, setActiveDeployment] = useState<string | null>(null);
   const [showDeployModal, setShowDeployModal] = useState(false);
+  const [newDeployment, setNewDeployment] = useState<{
+    projectSlug: string;
+    gitUrl: string;
+    url: string;
+  } | null>(null);
   const { data: session, isPending } = useSession();
+
+  const handleDeploymentStart = (deployment: {
+    projectSlug: string;
+    gitUrl: string;
+    url: string;
+  }) => {
+    setNewDeployment(deployment);
+    setActiveDeployment(deployment.projectSlug);
+    setShowDeployModal(false);
+  };
 
   if (isPending) {
     return (
@@ -46,11 +61,10 @@ export default function DashboardPage() {
               <Plus className="w-4 h-4" />
               New Deployment
             </button>
-          </div>
-
-          {/* Deployments Dashboard */}
+          </div>          {/* Deployments Dashboard */}
           <DeploymentsDashboard
             onNewDeployment={() => setShowDeployModal(true)}
+            newDeployment={newDeployment}
           />
         </main>
       </div>
@@ -83,10 +97,9 @@ export default function DashboardPage() {
                   </svg>
                 </button>
               </div>
-            </div>
-            <div className="p-6">
+            </div>            <div className="p-6">
               <DeployForm
-                onDeploymentStart={setActiveDeployment}
+                onDeploymentStart={handleDeploymentStart}
                 activeDeployment={activeDeployment}
                 onClose={() => setShowDeployModal(false)}
               />

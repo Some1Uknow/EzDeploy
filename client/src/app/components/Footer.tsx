@@ -1,4 +1,7 @@
 import { Github, Twitter, Linkedin, Mail, ArrowUpRight } from 'lucide-react';
+import { SparklesText } from './ui/sparkles-text';
+import { ShimmerButton } from './ui/shimmer-button';
+import { DotPattern } from './ui/dot-pattern';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -36,18 +39,30 @@ export default function Footer() {
     { name: 'LinkedIn', icon: Linkedin, href: 'https://linkedin.com' },
     { name: 'Email', icon: Mail, href: 'mailto:hello@ezdeploy.com' },
   ];
-
   return (
-    <footer className="bg-black text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className="relative bg-black text-white overflow-hidden">
+      {/* Dot Pattern Background */}
+      <DotPattern
+        width={24}
+        height={24}
+        cx={1}
+        cy={1}
+        cr={1}
+        className="absolute inset-0 h-full w-full [mask-image:radial-gradient(600px_circle_at_center,white,transparent)] opacity-20 text-white"
+      />
+      
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
-        <div className="py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-          {/* Brand Section */}
+        <div className="py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">          {/* Brand Section */}
           <div className="lg:col-span-2">
             <div className="mb-6">
-              <h3 className="text-3xl font-bold">
-                Ez<span className="text-gray-400">Deploy</span>
-              </h3>
+              <SparklesText 
+                className="text-3xl font-bold"
+                sparklesCount={8}
+                colors={{ first: "#4f46e5", second: "#7c3aed" }}
+              >
+                EzDeploy
+              </SparklesText>
               <p className="text-gray-400 mt-4 text-lg leading-relaxed">
                 Modern cloud-native deployment platform that enables seamless deployment 
                 of web applications directly from Git repositories.
@@ -134,16 +149,20 @@ export default function Footer() {
               <p className="text-gray-400">
                 Get the latest updates on new features, performance improvements, and deployment tips.
               </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4">
+            </div>            <div className="flex flex-col sm:flex-row gap-4">
               <input
                 type="email"
                 placeholder="Enter your email"
                 className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
               />
-              <button className="px-6 py-3 bg-white text-black font-medium rounded-lg hover:bg-gray-100 transition-colors duration-200 whitespace-nowrap">
+              <ShimmerButton
+                className="px-6 py-3 text-black font-medium whitespace-nowrap"
+                shimmerColor="#000000"
+                background="rgba(255, 255, 255, 1)"
+                borderRadius="8px"
+              >
                 Subscribe
-              </button>
+              </ShimmerButton>
             </div>
           </div>
         </div>

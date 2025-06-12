@@ -8,6 +8,9 @@ import {
   Database,
   CloudLightning
 } from 'lucide-react';
+import { TextAnimate } from './ui/text-animate';
+import { NumberTicker } from './ui/number-ticker';
+import { DotPattern } from './ui/dot-pattern';
 
 export default function Features() {
   const features = [
@@ -52,18 +55,38 @@ export default function Features() {
       description: 'Direct integration with Git repositories. Support for private repos and branch-specific deployments.',
     },
   ];
-
   return (
-    <section id="features" className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="features" className="relative py-20 bg-white overflow-hidden">
+      {/* Dot Pattern Background */}
+      <DotPattern
+        width={20}
+        height={20}
+        cx={1}
+        cy={1}
+        cr={1}
+        className="absolute inset-0 h-full w-full [mask-image:radial-gradient(800px_circle_at_center,white,transparent)] opacity-40"
+      />
+      
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-black mb-4">
+          <TextAnimate
+            animation="blurInUp"
+            by="word"
+            className="text-4xl font-bold text-black mb-4"
+            as="h2"
+          >
             Everything You Need for Modern Deployment
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          </TextAnimate>
+          <TextAnimate
+            animation="fadeIn"
+            by="word"
+            delay={0.3}
+            className="text-xl text-gray-600 max-w-3xl mx-auto"
+            as="p"
+          >
             EzDeploy provides all the essential features for deploying and managing your web applications 
             with enterprise-grade reliability and performance.
-          </p>
+          </TextAnimate>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -83,24 +106,30 @@ export default function Features() {
               </p>
             </div>
           ))}
-        </div>
-
-        {/* Stats Section */}
+        </div>        {/* Stats Section */}
         <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="text-center">
-            <div className="text-4xl font-bold text-black mb-2">10M+</div>
+            <div className="text-4xl font-bold text-black mb-2">
+              <NumberTicker value={10} />M+
+            </div>
             <div className="text-gray-600">Deployments Processed</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold text-black mb-2">99.9%</div>
+            <div className="text-4xl font-bold text-black mb-2">
+              <NumberTicker value={99.9} decimalPlaces={1} />%
+            </div>
             <div className="text-gray-600">Uptime SLA</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold text-black mb-2"> 30s</div>
+            <div className="text-4xl font-bold text-black mb-2">
+              <NumberTicker value={30} />s
+            </div>
             <div className="text-gray-600">Average Deploy Time</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold text-black mb-2">24/7</div>
+            <div className="text-4xl font-bold text-black mb-2">
+              <NumberTicker value={24} />/<NumberTicker value={7} />
+            </div>
             <div className="text-gray-600">Support Available</div>
           </div>
         </div>

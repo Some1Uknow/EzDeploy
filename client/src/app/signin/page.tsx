@@ -1,24 +1,22 @@
 "use client";
 
-"use client";
-import React, { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import React, { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { redirect } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Github } from "lucide-react";
 import { signIn, useSession } from "@/lib/auth-client";
 
-export default function SignInPage() {
-  const router = useRouter();
+function SignInContent() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/dashboard';
   const { data: session, isPending } = useSession();
 
-  useEffect(() => {
-    if (session && !isPending) {
-      router.push(redirectTo);
-    }
-  }, [session, isPending, router, redirectTo]);
+  // Use redirect instead of useEffect for navigation
+  if (session && !isPending) {
+    redirect(redirectTo);
+  }
 
   const handleGoogleSignIn = async () => {
     try {
@@ -102,11 +100,25 @@ export default function SignInPage() {
                 Privacy Policy
               </a>
             </p>
-          </div>
-        </div>
+          </div>        </div>
       </div>
       <Footer />
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }
 
