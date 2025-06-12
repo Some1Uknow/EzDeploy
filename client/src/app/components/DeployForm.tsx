@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GitBranch } from 'lucide-react';
+import { GitBranch, Github } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { CheckCircle } from 'lucide-react';
 import { XCircle } from 'lucide-react';
 import { ExternalLink } from 'lucide-react';
 import { Copy } from 'lucide-react';
 import { Check } from 'lucide-react';
+import { useGitHubRepositories, GitHubRepository } from '@/lib/hooks/useGitHubRepositories';
+import { signIn, useSession } from '@/lib/auth-client';
+import RepositorySelector from './RepositorySelector';
 
 interface DeployFormProps {
   onDeploymentStart: (projectId: string) => void;
@@ -32,28 +35,72 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
   const [logs, setLogs] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [deploymentMode, setDeploymentMode] = useState<'github' | 'manual'>('github');
+  const [selectedRepository, setSelectedRepository] = useState<GitHubRepository | null>(null);
+  
+  const { data: session } = useSession();
+  const { repositories, loading: reposLoading, error: reposError, hasGitHubConnection, refetch } = useGitHubRepositories();
 
   const validateGitUrl = (url: string) => {
     const gitUrlPattern = /^https?:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[\w\-\.]+\/[\w\-\.]+\.git?$/i;
     return gitUrlPattern.test(url);
   };
-
   const validateSlug = (slug: string) => {
     const slugPattern = /^[a-z0-9\-]+$/;
     return slug === '' || slugPattern.test(slug);
   };
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!gitUrl.trim()) return;
 
-    // Validate Git URL
-    const gitUrlPattern = /^https?:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[\w\-\.]+\/[\w\-\.]+\.git?$/i;
-    if (!gitUrlPattern.test(gitUrl.trim())) {
+  const handleConnectGitHub = async () => {
+    try {
+      await signIn.social({
+        provider: "github",
+        callbackURL: window.location.href,
+      });
+    } catch (error) {
+      console.error("GitHub sign in error:", error);
+    }
+  };
+
+  const handleRepositorySelect = (repository: GitHubRepository) => {
+    setSelectedRepository(repository);
+    setGitUrl(repository.clone_url);
+    setSlug(repository.name.toLowerCase().replace(/[^a-z0-9\-]/g, '-'));
+  };  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Check deployment mode and validate accordingly
+    if (deploymentMode === 'github' && !selectedRepository) {
       setDeploymentResult({
         status: 'error',
-        message: 'Please enter a valid Git repository URL (GitHub, GitLab, or Bitbucket)',
+        message: 'Please select a repository from your GitHub account',
       });
       return;
+    }
+    
+    if (deploymentMode === 'manual' && !gitUrl.trim()) {
+      setDeploymentResult({
+        status: 'error',
+        message: 'Please enter a Git repository URL',
+      });
+      return;
+    }
+
+    const finalGitUrl = deploymentMode === 'github' 
+      ? selectedRepository?.clone_url || ''
+      : gitUrl.trim();
+
+    if (!finalGitUrl) return;
+
+    // Validate Git URL for manual mode
+    if (deploymentMode === 'manual') {
+      const gitUrlPattern = /^https?:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[\w\-\.]+\/[\w\-\.]+\.git?$/i;
+      if (!gitUrlPattern.test(finalGitUrl)) {
+        setDeploymentResult({
+          status: 'error',
+          message: 'Please enter a valid Git repository URL (GitHub, GitLab, or Bitbucket)',
+        });
+        return;
+      }
     }
 
     // Validate slug if provided
@@ -79,7 +126,7 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          gitURL: gitUrl.trim(),
+          gitURL: finalGitUrl,
           slug: slug.trim() || undefined,
         }),
       });
@@ -89,8 +136,6 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
 
       if (data.status === 'queued' && data.data?.projectSlug) {
         onDeploymentStart(data.data.projectSlug);
-        // Here you would normally connect to WebSocket for real-time logs
-        // For demo purposes, we'll simulate logs
         simulateLogs();
       }
     } catch (error) {
@@ -128,12 +173,12 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
       console.error('Failed to copy to clipboard:', error);
     }
   };
-
   const handleSuccess = () => {
     // Reset form after successful deployment
     setTimeout(() => {
       setGitUrl('');
       setSlug('');
+      setSelectedRepository(null);
       setDeploymentResult(null);
       setLogs([]);
       onClose?.();
@@ -145,31 +190,75 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
       handleSuccess();
     }
   }, [deploymentResult?.status]);
-
   return (
     <div className="space-y-6">
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="gitUrl" className="block text-sm font-medium text-gray-900 mb-2">
-            Git Repository URL
-          </label>
-          <div className="relative">
-            <GitBranch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="url"
-              id="gitUrl"
-              value={gitUrl}
-              onChange={(e) => setGitUrl(e.target.value)}
-              placeholder="https://github.com/username/repository"
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm"
-              required
+        {/* Deployment Mode Toggle */}
+        <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+          <button
+            type="button"
+            onClick={() => setDeploymentMode('github')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 ${
+              deploymentMode === 'github'
+                ? 'bg-white text-black shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Github className="w-4 h-4" />
+            GitHub Repositories
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeploymentMode('manual')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 ${
+              deploymentMode === 'manual'
+                ? 'bg-white text-black shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <GitBranch className="w-4 h-4" />
+            Manual Git URL
+          </button>
+        </div>
+
+        {/* Repository Selection */}
+        {deploymentMode === 'github' ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-3">
+              Select Repository
+            </label>
+            <RepositorySelector
+              repositories={repositories}
+              onSelect={handleRepositorySelect}
+              loading={reposLoading}
+              error={reposError}
+              hasGitHubConnection={hasGitHubConnection}
+              onConnectGitHub={handleConnectGitHub}
             />
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Supports GitHub, GitLab, and Bitbucket repositories
-          </p>
-        </div>
+        ) : (
+          <div>
+            <label htmlFor="gitUrl" className="block text-sm font-medium text-gray-900 mb-2">
+              Git Repository URL
+            </label>
+            <div className="relative">
+              <GitBranch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="url"
+                id="gitUrl"
+                value={gitUrl}
+                onChange={(e) => setGitUrl(e.target.value)}
+                placeholder="https://github.com/username/repository"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm"
+                required
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Supports GitHub, GitLab, and Bitbucket repositories
+            </p>
+          </div>
+        )}
 
         <div>
           <label htmlFor="slug" className="block text-sm font-medium text-gray-900 mb-2">
@@ -198,7 +287,7 @@ export default function DeployForm({ onDeploymentStart, activeDeployment, onClos
           </button>
           <button
             type="submit"
-            disabled={isDeploying || !gitUrl.trim()}
+            disabled={isDeploying || (deploymentMode === 'github' ? !selectedRepository : !gitUrl.trim())}
             className="flex-1 bg-black text-white py-2.5 px-4 rounded-lg font-medium hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 text-sm"
           >
             {isDeploying ? (
