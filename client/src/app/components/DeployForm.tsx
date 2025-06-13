@@ -13,13 +13,17 @@ import {
   GitHubRepository,
 } from "@/lib/hooks/useGitHubRepositories";
 import { signIn } from "@/lib/auth-client";
+import { handleApiError } from "@/lib/api";
+import { useProjects } from "@/lib/hooks/useProjects";
 import RepositorySelector from "./RepositorySelector";
+import { useSession } from "@/lib/auth-client";
 
 interface DeployFormProps {
   onDeploymentStart: (deployment: {
     projectSlug: string;
     gitUrl: string;
     url: string;
+    userId: string;
   }) => void;
   activeDeployment: string | null;
   onClose?: () => void;
@@ -32,6 +36,7 @@ interface DeploymentResponse {
     url: string;
   };
   message?: string;
+  error?: string;
 }
 
 export default function DeployForm({
@@ -51,6 +56,10 @@ export default function DeployForm({
   );
   const [selectedRepository, setSelectedRepository] =
     useState<GitHubRepository | null>(null);
+  const { data: session } = useSession();
+  
+  // Use the projects hook for creating projects
+  const { createProject } = useProjects({ autoFetch: false });
 
   const {
     repositories,
@@ -127,40 +136,33 @@ export default function DeployForm({
         });
         return;
       }
-    }
-
-    setIsDeploying(true);
+    }    setIsDeploying(true);
     setDeploymentResult(null);
     setLogs([]);
 
     try {
-      const response = await fetch("http://localhost:9000/project", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          gitURL: finalGitUrl,
-          slug: slug.trim() || undefined,
-        }),
+      const result = await createProject({
+        gitURL: finalGitUrl,
+        slug: slug.trim() || undefined,
+        userId: session?.user.id,
+        name: selectedRepository?.name || slug.trim() || undefined,
       });
-      const data = await response.json();
-      if (data.status === "queued" && data.data?.projectSlug) {
-        // Pass deployment data to parent component
-        onDeploymentStart({
-          projectSlug: data.data.projectSlug,
-          gitUrl: finalGitUrl,
-          url: data.data.url,
-        });
-        // Close modal immediately
-        onClose?.();
-      } else {
-        setDeploymentResult(data);
-      }
+
+      // Pass deployment data to parent component
+      onDeploymentStart({
+        projectSlug: result.projectSlug,
+        gitUrl: finalGitUrl,
+        userId: session?.user.id || "",
+        url: result.url,
+      });
+      
+      // Close modal immediately
+      onClose?.();
+      
     } catch (error) {
       setDeploymentResult({
         status: "error",
-        message: "Failed to connect to deployment service",
+        message: handleApiError(error),
       });
     } finally {
       setIsDeploying(false);

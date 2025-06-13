@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import useSocket from "@/lib/hooks/useSocket";
+import { api, Project, mapStatus, handleApiError } from "@/lib/api";
+import { useProjects } from "@/lib/hooks/useProjects";
+import { env } from "@/lib/config";
 
 interface Deployment {
   id: string;
@@ -40,6 +43,42 @@ export default function DeploymentsDashboard({
 }: DeploymentsDashboardProps) {
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [expandedLogs, setExpandedLogs] = useState<string | null>(null);
+  
+  // Use the projects hook for API management
+  const { projects, loading, error, refetch } = useProjects();
+
+  // Convert API projects to deployment format
+  useEffect(() => {
+    const formattedDeployments: Deployment[] = projects.map(
+      (project: Project) => ({
+        id: project.id,
+        projectName: project.name,
+        gitUrl: project.repoUrl,
+        status: mapStatus(project.status),
+        deploymentUrl: project.deployUrl || `http://${project.id}.localhost:8000`,
+        createdAt: project.createdAt,
+        duration: calculateDuration(project.createdAt, project.deployedAt || project.updatedAt),
+        logs: project.logs.map((log, index) => 
+          `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}`
+        ),
+      })
+    );
+    setDeployments(formattedDeployments);
+  }, [projects]);
+
+  // Calculate duration between two dates
+  const calculateDuration = (startDate: string, endDate?: string): string => {
+    const start = new Date(startDate);
+    const end = endDate ? new Date(endDate) : new Date();
+    const diffInMs = end.getTime() - start.getTime();
+    const diffInSeconds = Math.floor(diffInMs / 1000);
+    
+    if (diffInSeconds < 60) return `${diffInSeconds}s`;
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    return `${diffInHours}h ${diffInMinutes % 60}m`;
+  };
 
   // Add new deployment when it's created
   useEffect(() => {
@@ -60,10 +99,9 @@ export default function DeploymentsDashboard({
       };
       setDeployments((prev) => [deployment, ...prev]);
     }
-  }, [newDeployment]);
-  // Setup socket connection for real-time logs
+  }, [newDeployment]);// Setup socket connection for real-time logs
   const socket = useSocket({
-    url: "http://localhost:9000",
+    url: env.SOCKET_URL,
     onLog: (message: string) => {
       console.log("Received log:", message);
 
@@ -85,18 +123,23 @@ export default function DeploymentsDashboard({
           }
           return deployment;
         })
-      );
+      );      // Also refetch projects to get updated status from backend
+      if (message.includes("deployed") || message.includes("failed")) {
+        setTimeout(() => refetch(), 2000);
+      }
     },
   });
 
   // Subscribe to logs channel when there's an active deployment
   useEffect(() => {
     if (socket && newDeployment) {
+      // This is the correct channel format to match what the server is emitting on
       const channel = `logs:${newDeployment.projectSlug}`;
       console.log(`Subscribing to channel: ${channel}`);
       socket.emit("subscribe", channel);
     }
   }, [socket, newDeployment]);
+
   const toggleLogs = (deploymentId: string) => {
     setExpandedLogs(expandedLogs === deploymentId ? null : deploymentId);
   };
@@ -122,6 +165,40 @@ export default function DeploymentsDashboard({
     const match = gitUrl.match(/\/([^\/]+)(?:\.git)?$/);
     return match ? match[1] : gitUrl;
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <Globe className="w-8 h-8 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          Loading deployments...
+        </h3>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white border border-red-200 rounded-lg p-12 text-center">
+        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Globe className="w-8 h-8 text-red-400" />
+        </div>
+        <h3 className="text-lg font-medium text-red-900 mb-2">
+          Error loading deployments
+        </h3>
+        <p className="text-red-600 mb-6 max-w-sm mx-auto">
+          {error}
+        </p>        <button
+          onClick={() => refetch()}
+          className="inline-flex items-center px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-200"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (deployments.length === 0) {
     return (

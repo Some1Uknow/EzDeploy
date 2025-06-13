@@ -66,7 +66,7 @@ export const verification = pgTable("verification", {
   ),
 });
 
-export const project = pgTable("project", {
+const project = pgTable("project", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
@@ -82,4 +82,6 @@ export const project = pgTable("project", {
   repoUrl: text("repo_url").notNull(),
   deployUrl: text("deploy_url"),
   deployedAt: timestamp("deployed_at"),
+  logs: text("logs").$defaultFn(() => "[]"),
+  status: text("status").$defaultFn(() => "pending"),
 });

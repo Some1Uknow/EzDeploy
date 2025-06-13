@@ -43,8 +43,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-white">
       <Header />
       <div className="pt-16">
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Page Header */}
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">          {/* Page Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">
@@ -53,6 +52,7 @@ export default function DashboardPage() {
               <p className="text-gray-600 mt-1">
                 Manage and monitor your application deployments
               </p>
+          
             </div>
             <button
               onClick={() => setShowDeployModal(true)}
@@ -61,7 +61,7 @@ export default function DashboardPage() {
               <Plus className="w-4 h-4" />
               New Deployment
             </button>
-          </div>          {/* Deployments Dashboard */}
+          </div>{/* Deployments Dashboard */}
           <DeploymentsDashboard
             onNewDeployment={() => setShowDeployModal(true)}
             newDeployment={newDeployment}
