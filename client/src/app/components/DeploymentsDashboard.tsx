@@ -22,7 +22,7 @@ interface Deployment {
   projectName: string;
   gitUrl: string;
   status: "success" | "error" | "pending" | "queued";
-  deploymentUrl: string;
+  deploy_url: string;
   createdAt: string;
   duration: string;
   logs: string[];
@@ -43,7 +43,7 @@ export default function DeploymentsDashboard({
 }: DeploymentsDashboardProps) {
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [expandedLogs, setExpandedLogs] = useState<string | null>(null);
-  
+
   // Use the projects hook for API management
   const { projects, loading, error, refetch } = useProjects();
 
@@ -55,11 +55,16 @@ export default function DeploymentsDashboard({
         projectName: project.name,
         gitUrl: project.repoUrl,
         status: mapStatus(project.status),
-        deploymentUrl: project.deployUrl || `http://${project.id}.localhost:8000`,
+        deploy_url:
+          project.deploy_url || `http://${project.id}.localhost:8000`,
         createdAt: project.createdAt,
-        duration: calculateDuration(project.createdAt, project.deployedAt || project.updatedAt),
-        logs: project.logs.map((log, index) => 
-          `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}`
+        duration: calculateDuration(
+          project.createdAt,
+          project.deployedAt || project.updatedAt
+        ),
+        logs: project.logs.map(
+          (log, index) =>
+            `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}`
         ),
       })
     );
@@ -72,7 +77,7 @@ export default function DeploymentsDashboard({
     const end = endDate ? new Date(endDate) : new Date();
     const diffInMs = end.getTime() - start.getTime();
     const diffInSeconds = Math.floor(diffInMs / 1000);
-    
+
     if (diffInSeconds < 60) return `${diffInSeconds}s`;
     const diffInMinutes = Math.floor(diffInSeconds / 60);
     if (diffInMinutes < 60) return `${diffInMinutes}m`;
@@ -88,7 +93,7 @@ export default function DeploymentsDashboard({
         projectName: newDeployment.projectSlug,
         gitUrl: newDeployment.gitUrl,
         status: "queued",
-        deploymentUrl: newDeployment.url,
+        deploy_url: newDeployment.url,
         createdAt: new Date().toISOString(),
         duration: "0s",
         logs: [
@@ -99,7 +104,7 @@ export default function DeploymentsDashboard({
       };
       setDeployments((prev) => [deployment, ...prev]);
     }
-  }, [newDeployment]);// Setup socket connection for real-time logs
+  }, [newDeployment]); // Setup socket connection for real-time logs
   const socket = useSocket({
     url: env.SOCKET_URL,
     onLog: (message: string) => {
@@ -123,7 +128,7 @@ export default function DeploymentsDashboard({
           }
           return deployment;
         })
-      );      // Also refetch projects to get updated status from backend
+      ); // Also refetch projects to get updated status from backend
       if (message.includes("deployed") || message.includes("failed")) {
         setTimeout(() => refetch(), 2000);
       }
@@ -188,9 +193,8 @@ export default function DeploymentsDashboard({
         <h3 className="text-lg font-medium text-red-900 mb-2">
           Error loading deployments
         </h3>
-        <p className="text-red-600 mb-6 max-w-sm mx-auto">
-          {error}
-        </p>        <button
+        <p className="text-red-600 mb-6 max-w-sm mx-auto">{error}</p>{" "}
+        <button
           onClick={() => refetch()}
           className="inline-flex items-center px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-200"
         >
@@ -270,7 +274,7 @@ export default function DeploymentsDashboard({
             <div className="flex items-center gap-2 ml-4">
               {deployment.status === "success" && (
                 <a
-                  href={deployment.deploymentUrl}
+                  href={deployment.deploy_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"

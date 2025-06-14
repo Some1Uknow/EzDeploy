@@ -50,6 +50,7 @@ const createProject = async (req, res) => {
   const projectUserId = userId;
   const projectName = name || `Project ${new Date().toISOString()}`;
   const projectSlug = slug ? slug : generateSlug();
+  const deployUrl = `http://${projectSlug}.localhost:8000`;
 
   try {
     // First, create the project record in the database
@@ -61,8 +62,8 @@ const createProject = async (req, res) => {
         description: description || `Project for ${gitURL.trim()}`,
         userId: projectUserId,
         repoUrl: gitURL.trim(),
-        deploy_url: `http://${projectSlug}.localhost:8000`,
-        deployedAt: new Date().toISOString(),
+        deployUrl: deployUrl,
+        deployedAt: new Date(),
         status: "queued",
         logs: JSON.stringify([
           {

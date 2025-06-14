@@ -39,7 +39,7 @@ async function init() {
       "Output directory does not exist. Git clone may have failed.";
     console.error(errorMsg);
     publishLog(`error: ${errorMsg}`);
-    
+
     // Close connections and exit with error
     await publisher.quit();
     process.exit(1);
@@ -60,11 +60,12 @@ async function init() {
 
   p.on("close", async function (code) {
     console.log(`Build process exited with code ${code}`);
-    publishLog(`Build process exited with code ${code}`);    if (code !== 0) {
+    publishLog(`Build process exited with code ${code}`);
+    if (code !== 0) {
       const errorMsg = `Build failed with exit code ${code}`;
       console.error(errorMsg);
       publishLog(`error: ${errorMsg}`);
-      
+
       // Close connections and exit with error
       await publisher.quit();
       process.exit(1);
@@ -88,12 +89,13 @@ async function init() {
         distFolderPath = distPath;
         break;
       }
-    }    if (!distFolderPath) {
+    }
+    if (!distFolderPath) {
       const errorMsg =
         "No build output directory found (dist, build, out, or public)";
       console.error(errorMsg);
       publishLog(`error: ${errorMsg}`);
-      
+
       // Close connections and exit with error
       await publisher.quit();
       process.exit(1);
@@ -127,9 +129,10 @@ async function init() {
         await s3Client.send(command);
         publishLog(`uploaded ${file}`);
         console.log("uploaded", filePath);
-      }      publishLog(`Done`);
+      }
+      publishLog(`Done`);
       console.log("Done...");
-      
+
       // Close connections and exit gracefully
       await publisher.quit();
       process.exit(0);
@@ -137,7 +140,7 @@ async function init() {
       const errorMsg = `Error during upload: ${error.message}`;
       console.error(errorMsg);
       publishLog(`error: ${errorMsg}`);
-      
+
       // Close connections and exit with error
       await publisher.quit();
       process.exit(1);
@@ -147,7 +150,7 @@ async function init() {
     const errorMsg = `Failed to start build process: ${error.message}`;
     console.error(errorMsg);
     publishLog(`error: ${errorMsg}`);
-    
+
     publisher.quit().finally(() => {
       process.exit(1);
     });
