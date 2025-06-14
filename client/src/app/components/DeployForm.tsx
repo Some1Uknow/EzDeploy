@@ -57,10 +57,9 @@ export default function DeployForm({
   const [selectedRepository, setSelectedRepository] =
     useState<GitHubRepository | null>(null);
   const { data: session } = useSession();
-  
+
   // Use the projects hook for creating projects
   const { createProject } = useProjects({ autoFetch: false });
-
   const {
     repositories,
     loading: reposLoading,
@@ -136,7 +135,8 @@ export default function DeployForm({
         });
         return;
       }
-    }    setIsDeploying(true);
+    }
+    setIsDeploying(true);
     setDeploymentResult(null);
     setLogs([]);
 
@@ -147,7 +147,7 @@ export default function DeployForm({
         userId: session?.user.id,
         name: selectedRepository?.name || slug.trim() || undefined,
       });
-
+      console.log("INPUT", gitUrl, slug, session?.user.id, result);
       // Pass deployment data to parent component
       onDeploymentStart({
         projectSlug: result.projectSlug,
@@ -155,10 +155,9 @@ export default function DeployForm({
         userId: session?.user.id || "",
         url: result.url,
       });
-      
+
       // Close modal immediately
       onClose?.();
-      
     } catch (error) {
       setDeploymentResult({
         status: "error",
@@ -178,9 +177,39 @@ export default function DeployForm({
       console.error("Failed to copy to clipboard:", error);
     }
   };
-
   return (
     <div className="space-y-6">
+      {/* Public Repository Warning */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            <svg
+              className="h-5 w-5 text-yellow-400"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-yellow-800">
+              Public Repositories Only
+            </h3>
+            <div className="mt-2 text-sm text-yellow-700">
+              <p>
+                Currently, only public repositories are supported. Private
+                repository support is coming soon! Please ensure your repository
+                is public before deploying.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Deployment Mode Toggle */}
@@ -210,7 +239,6 @@ export default function DeployForm({
             Manual Git URL
           </button>
         </div>
-
         {/* Repository Selection */}
         {deploymentMode === "github" ? (
           <div>
@@ -249,8 +277,7 @@ export default function DeployForm({
               Supports GitHub, GitLab, and Bitbucket repositories
             </p>
           </div>
-        )}
-
+        )}{" "}
         <div>
           <label
             htmlFor="slug"
@@ -269,7 +296,6 @@ export default function DeployForm({
             Auto-generated from repository name if left empty
           </p>
         </div>
-
         <div className="flex gap-3 pt-4">
           <button
             type="button"
