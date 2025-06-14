@@ -61,6 +61,8 @@ const createProject = async (req, res) => {
         description: description || `Project for ${gitURL.trim()}`,
         userId: projectUserId,
         repoUrl: gitURL.trim(),
+        deploy_url: `http://${projectSlug}.localhost:8000`,
+        deployedAt: new Date().toISOString(),
         status: "queued",
         logs: JSON.stringify([
           {
