@@ -53,6 +53,8 @@ const createProject = async (req, res) => {
   const deployUrl = `http://${projectSlug}.localhost:8000`;
 
   try {
+    console.log(`Creating project with URL: ${gitURL.trim()}`);
+
     // First, create the project record in the database
     const [createdProject] = await db
       .insert(project)

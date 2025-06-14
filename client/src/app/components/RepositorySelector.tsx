@@ -45,7 +45,6 @@ export default function RepositorySelector({
   const [selectedRepo, setSelectedRepo] = useState<GitHubRepository | null>(
     null
   );
-
   const filteredRepositories = repositories.filter(
     (repo) =>
       repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,7 +52,14 @@ export default function RepositorySelector({
       repo.full_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Separate public and private repositories
+  const publicRepos = filteredRepositories.filter(repo => !repo.private);
+  const privateRepos = filteredRepositories.filter(repo => repo.private);
+
   const handleRepoSelect = (repo: GitHubRepository) => {
+    // Only allow selection of public repositories
+    if (repo.private) return;
+    
     setSelectedRepo(repo);
     onSelect(repo);
   };
@@ -140,8 +146,7 @@ export default function RepositorySelector({
         />
       </div>
 
-      {/* Repository List */}
-      <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg">
+      {/* Repository List */}      <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg">
         {filteredRepositories.length === 0 ? (
           <div className="p-6 text-center text-gray-500">
             {searchTerm
@@ -149,60 +154,128 @@ export default function RepositorySelector({
               : "No repositories found."}
           </div>
         ) : (
-          filteredRepositories.map((repo) => (
-            <button
-              key={repo.id}
-              onClick={() => handleRepoSelect(repo)}
-              className={`w-full text-left p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-200 ${
-                selectedRepo?.id === repo.id ? "bg-blue-50 border-blue-200" : ""
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  {" "}
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-medium text-gray-900 truncate">
-                      {repo.name}
-                    </h3>{" "}
-                    <span>
-                      <ReactLogo />
-                    </span>
-                    {repo.private && (
-                      <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
-                        Private
+          <>
+            {/* Public Repositories */}
+            {publicRepos.map((repo) => (
+              <button
+                key={repo.id}
+                onClick={() => handleRepoSelect(repo)}
+                className={`w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200 ${
+                  selectedRepo?.id === repo.id ? "bg-blue-50 border-blue-200" : ""
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-medium text-gray-900 truncate">
+                        {repo.name}
+                      </h3>
+                      <span>
+                        <ReactLogo />
                       </span>
+                      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                        Public
+                      </span>
+                      {repo.fork && <GitFork className="w-3 h-3 text-gray-400" />}
+                    </div>
+                    {repo.description && (
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2 overflow-hidden">
+                        {repo.description}
+                      </p>
                     )}
-                    {repo.fork && <GitFork className="w-3 h-3 text-gray-400" />}
-                  </div>
-                  {repo.description && (
-                    <p className="text-sm text-gray-600 mb-2 line-clamp-2 overflow-hidden">
-                      {repo.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    {repo.language && (
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      {repo.language && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                          <span>{repo.language}</span>
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        <span>{repo.language}</span>
+                        <Star className="w-3 h-3" />
+                        <span>{repo.stargazers_count}</span>
                       </div>
-                    )}
 
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3 h-3" />
-                      <span>{repo.stargazers_count}</span>
-                    </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDate(repo.updated_at)}</span>
+                      </div>                    </div>
+                  </div>
 
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>Updated {formatDate(repo.pushed_at)}</span>
-                    </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <a
+                      href={repo.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      title={`View ${repo.name} on GitHub`}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
                   </div>
                 </div>
+              </button>
+            ))}
+            
+            {/* Private Repositories (Disabled) */}
+            {privateRepos.map((repo) => (
+              <div
+                key={repo.id}
+                className="w-full text-left p-4 border-b border-gray-100 opacity-50 cursor-not-allowed bg-gray-50"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-medium text-gray-700 truncate">
+                        {repo.name}
+                      </h3>
+                      <span className="opacity-50">
+                        <ReactLogo />
+                      </span>
+                      <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
+                        Private (Soon)
+                      </span>
+                      {repo.fork && <GitFork className="w-3 h-3 text-gray-400" />}
+                    </div>
+                    {repo.description && (
+                      <p className="text-sm text-gray-500 mb-2 line-clamp-2 overflow-hidden">
+                        {repo.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-4 text-xs text-gray-400">
+                      {repo.language && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                          <span>{repo.language}</span>
+                        </div>
+                      )}
 
-                <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3 h-3" />
+                        <span>{repo.stargazers_count}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDate(repo.updated_at)}</span>
+                      </div>
+                    </div>
+                  </div>                  <div className="flex items-center gap-2 ml-4">
+                    <a
+                      href={repo.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      title={`View ${repo.name} on GitHub`}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
               </div>
-            </button>
-          ))
+            ))}          </>
         )}
       </div>
 
