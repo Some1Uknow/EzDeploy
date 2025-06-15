@@ -82,12 +82,12 @@ export default function Hero() {
               <span className="text-white">Start Deploying</span>
               <ArrowRight className="w-5 h-5 ml-2 text-white" />
             </ShimmerButton>
-            <a
+            {/* <a
               href="#architecture"
               className="inline-flex items-center px-8 py-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:border-gray-400 hover:text-black transition-all duration-200 min-w-[200px] justify-center"
             >
               View Architecture
-            </a>
+            </a> */}
           </div>{" "}
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-2xl mx-auto">

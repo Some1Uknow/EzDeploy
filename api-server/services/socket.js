@@ -80,10 +80,9 @@ function startPeriodicFlush() {
 }
 
 // Initialize Socket.IO and only then Redis subscriptions
-function initializeSocket() {
-  const httpServer = createServer();
+function initializeSocket(httpServer) {
   io = new Server(httpServer, {
-    cors: { origin: config.ALLOWED_ORIGINS }, // tighten in prod
+    cors: { origin: config.CORS_OPTIONS.origin }, // Use same CORS as Express
   });
 
   io.on("connection", socket => {
@@ -109,11 +108,11 @@ function initializeSocket() {
     });
   });
 
-  httpServer.listen(config.SOCKET_PORT, () => {
-    console.log(`Socket server on port ${config.SOCKET_PORT}`);
-    initRedisSubscribe();
-    startPeriodicFlush();
-  });
+  // Initialize Redis and periodic flush when Socket.IO is ready
+  initRedisSubscribe();
+  startPeriodicFlush();
+  
+  console.log(`Socket.IO initialized on same server as Express`);
 
   return io;
 }

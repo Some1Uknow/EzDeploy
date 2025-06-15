@@ -19,9 +19,9 @@ echo.
 echo All services started successfully!
 echo To stop the services, close the respective command windows.
 echo.
-echo API Server: http://localhost:8080
+echo API Server: http://localhost:9000
 echo Client: http://localhost:3000
-echo S3 Reverse Proxy: http://localhost:9000 (if applicable)
+echo S3 Reverse Proxy: http://localhost:8000 (if applicable)
 echo.
 echo Press any key to exit this window...
 pause > nul

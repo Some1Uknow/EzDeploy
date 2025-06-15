@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const { createServer } = require("http");
 require("dotenv").config();
 
 const { config, validateEnv } = require("./config");
@@ -10,6 +11,7 @@ const routes = require("./routes");
 validateEnv();
 
 const app = express();
+const httpServer = createServer(app);
 
 app.use(express.json());
 app.use(cors(config.CORS_OPTIONS));
@@ -17,10 +19,9 @@ app.use(cors(config.CORS_OPTIONS));
 // Routes
 app.use(routes);
 
-// Initialize Socket.IO and Redis subscription
-initializeSocket();
-// initRedisSubscribe();
+// Initialize Socket.IO on the same server
+initializeSocket(httpServer);
 
-app.listen(config.PORT, () => {
-  console.log(`App is live on http://localhost:${config.PORT}`);
+httpServer.listen(config.PORT, () => {
+  console.log(`Server and Socket.IO running on http://localhost:${config.PORT}`);
 });

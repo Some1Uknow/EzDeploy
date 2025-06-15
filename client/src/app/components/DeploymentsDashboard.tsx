@@ -91,7 +91,7 @@ export default function DeploymentsDashboard({
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }, []);// Convert API projects to deployment format
-  
+
   useEffect(() => {
     const formattedDeployments: Deployment[] = projects.map(
       (project: Project) => ({
@@ -385,7 +385,7 @@ export default function DeploymentsDashboard({
               {" "}
               <div className="flex items-center gap-3 mb-2">
                 <h3 className="font-medium text-gray-900 truncate">
-                  {deployment.projectName}
+                  {deployment.id}
                 </h3>
                 <StatusBadge
                   status={deployment.status}
