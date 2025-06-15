@@ -3,7 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const { config, validateEnv } = require("./config");
-const { initializeSocket, initRedisSubscribe } = require("./services/socket");
+const { initializeSocket } = require("./services/socket");
 const routes = require("./routes");
 
 // Validate environment variables
@@ -19,7 +19,7 @@ app.use(routes);
 
 // Initialize Socket.IO and Redis subscription
 initializeSocket();
-initRedisSubscribe();
+// initRedisSubscribe();
 
 app.listen(config.PORT, () => {
   console.log(`App is live on http://localhost:${config.PORT}`);

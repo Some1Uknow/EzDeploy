@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import useSocket from "@/lib/hooks/useSocket";
+import { useDeploymentLogs } from "@/lib/hooks/useDeploymentLogs";
 import { api, Project, mapStatus, handleApiError } from "@/lib/api";
 import { useProjects } from "@/lib/hooks/useProjects";
 import { env } from "@/lib/config";
@@ -43,15 +44,54 @@ export default function DeploymentsDashboard({
   newDeployment,
   userId,
 }: DeploymentsDashboardProps) {
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
-  const [expandedLogs, setExpandedLogs] = useState<string | null>(null);
+  const [deployments, setDeployments] = useState<Deployment[]>([]);  const [expandedLogs, setExpandedLogs] = useState<string | null>(null);
   const [lastRefetchTime, setLastRefetchTime] = useState<number>(0);
   const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Separate logs management to prevent re-renders on log updates
+  const { addLog, getLogsForDeployment, clearLogs } = useDeploymentLogs();
 
+  // Track which deployments have real-time logs to prevent duplication
+  const [deploymentsWithRealTimeLogs, setDeploymentsWithRealTimeLogs] = useState<Set<string>>(new Set());
+  const deploymentsWithRealTimeLogsRef = useRef<Set<string>>(new Set());
   // Use the projects hook for API management
   const { projects, loading, error, refetch } = useProjects({ userId });
 
-  // Convert API projects to deployment format
+  // Smart merge function to maintain order and prevent duplication
+  const mergeDeployments = useCallback((
+    apiDeployments: Deployment[], 
+    currentDeployments: Deployment[]
+  ): Deployment[] => {
+    // Create a map of current deployments for quick lookup
+    const currentMap = new Map(currentDeployments.map(d => [d.id, d]));
+    
+    // Merge API data with current state, preserving real-time updates
+    const merged = apiDeployments.map(apiDeployment => {
+      const current = currentMap.get(apiDeployment.id);
+      
+      if (current) {
+        // Keep current status if it's more recent or real-time
+        const shouldKeepCurrentStatus = 
+          (current.status === 'pending' && apiDeployment.status === 'queued') ||
+          deploymentsWithRealTimeLogsRef.current.has(apiDeployment.id);
+          
+        return {
+          ...apiDeployment,
+          status: shouldKeepCurrentStatus ? current.status : apiDeployment.status,
+          logs: deploymentsWithRealTimeLogsRef.current.has(apiDeployment.id) 
+            ? [] // Clear API logs if we have real-time logs
+            : apiDeployment.logs,
+        };
+      }
+      
+      return apiDeployment;
+    });
+    
+    // Sort by creation date to maintain consistent order
+    return merged.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, []);// Convert API projects to deployment format
+  
   useEffect(() => {
     const formattedDeployments: Deployment[] = projects.map(
       (project: Project) => ({
@@ -71,8 +111,30 @@ export default function DeploymentsDashboard({
         ),
       })
     );
-    setDeployments(formattedDeployments);
-  }, [projects]);
+    
+    // Use smart merge to maintain order and prevent issues
+    const mergedDeployments = mergeDeployments(formattedDeployments, deployments);
+    setDeployments(mergedDeployments);
+    
+    // Clean up logs for deployments that are completed
+    const completedIds = Array.from(deploymentsWithRealTimeLogsRef.current).filter(id => {
+      const deployment = formattedDeployments.find(d => d.id === id);
+      return deployment && (deployment.status === 'success' || deployment.status === 'error');
+    });
+    
+    // Clear logs for completed deployments after a delay
+    completedIds.forEach(id => {
+      setTimeout(() => {
+        clearLogs(id);
+        setDeploymentsWithRealTimeLogs(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(id);
+          deploymentsWithRealTimeLogsRef.current = newSet;
+          return newSet;
+        });
+      }, 30000);
+    });
+  }, [projects, clearLogs, mergeDeployments]);
 
   // Calculate duration between two dates
   const calculateDuration = (startDate: string, endDate?: string): string => {
@@ -111,65 +173,84 @@ export default function DeploymentsDashboard({
   const socket = useSocket({
     url: env.SOCKET_URL,
     onLog: (buildId, text) => {
-      console.log("Received log:", buildId, text);
-
-      // Update logs for the most recent deployment (the one that's building)
+      console.log(`[Dashboard] Received log for buildId: ${buildId}`, text);
+      
+      // Mark this deployment as having real-time logs
+      setDeploymentsWithRealTimeLogs(prev => {
+        const newSet = new Set(prev);
+        newSet.add(buildId);
+        deploymentsWithRealTimeLogsRef.current = newSet;
+        return newSet;
+      });
+      
+      // Add log to separate logs state (doesn't trigger deployment re-render)
+      addLog(buildId, text);
+    },
+    onStatusChange: (buildId, status) => {
+      console.log(`[Dashboard] Status change for buildId: ${buildId} -> ${status}`);
+      
+      // Update deployment status without changing order or logs
       setDeployments((prev) =>
         prev.map((d) => {
-          if (d.id !== buildId) return d; // 1) ignore other builds
-          
-          // Update status based on log content
-          let updatedStatus = d.status;
-          if (d.status === "queued") {
-            updatedStatus = "pending";
-          } else if (text.includes("Done") || text.includes("deployed")) {
-            updatedStatus = "success";
-          } else if (text.includes("failed")) {
-            updatedStatus = "error";
-          }
-          
+          if (d.id !== buildId) return d;
+          console.log(`[Dashboard] Updating status for deployment ${d.id}: ${d.status} -> ${status}`);
           return {
             ...d,
-            status: updatedStatus,
-            logs: [...d.logs, `[${new Date().toLocaleTimeString()}] ${text}`],
+            status: status,
           };
         })
       );
-
-      // Trigger debounced refetch when important log messages are detected
-      if (text.includes("deployed") || text.includes("failed") || text.includes("Done")) {
-        console.log("Important log detected, triggering refetch:", text);
+      
+      // Only trigger refetch for final states, but with debouncing to prevent rapid refetches
+      if (status === "success" || status === "error") {
+        console.log(`[Dashboard] Final status reached for ${buildId}, triggering refetch:`, status);
         debouncedRefetch();
       }
     },
-  });
-
-  // Subscribe to logs channel when there's an active deployment
+  });  // Subscribe to logs channel when there's an active deployment
   useEffect(() => {
     if (!socket) return;
 
-    deployments
-      .filter((d) => d.status === "queued" || d.status === "pending")
-      .forEach((d) => {
-        const channel = `logs:${d.id}`;
-        socket.emit("subscribe", channel);
-      });
-  }, [socket, deployments]);
+    const activeDeployments = deployments.filter(
+      (d) => d.status === "queued" || d.status === "pending"
+    );
 
+    // Keep track of currently subscribed channels
+    const currentChannels = activeDeployments.map(d => `logs:${d.id}`);
+    
+    console.log(`[Dashboard] Managing subscriptions for channels:`, currentChannels);
+
+    // Subscribe to channels for active deployments
+    activeDeployments.forEach((d) => {
+      const channel = `logs:${d.id}`;
+      console.log("Subscribing to channel:", channel);
+      socket.emit("subscribe", channel);
+    });
+
+    // Cleanup function to unsubscribe when deployments change
+    return () => {
+      activeDeployments.forEach((d) => {
+        const channel = `logs:${d.id}`;
+        console.log("Unsubscribing from channel:", channel);
+        socket.emit("unsubscribe", channel);
+      });
+    };
+  }, [socket, deployments.filter(d => d.status === "queued" || d.status === "pending").map(d => d.id).sort().join(',')]);
+  // ^ Use sorted IDs string to prevent unnecessary re-subscriptions due to order changes
   // Periodically refetch if there are pending deployments
   useEffect(() => {
-    const hasPendingDeployments = deployments.some(
+    const pendingDeployments = deployments.filter(
       (d) => d.status === "queued" || d.status === "pending"
     );
     
     let intervalId: NodeJS.Timeout | null = null;
     
-    if (hasPendingDeployments) {
-      // Refetch every 15 seconds if there are pending deployments
+    if (pendingDeployments.length > 0) {
+      // Refetch every 30 seconds if there are pending deployments (reduced frequency)
       intervalId = setInterval(() => {
-        console.log("Auto-refetching due to pending deployments");
+        console.log("Auto-refetching due to pending deployments:", pendingDeployments.length);
         refetch();
-      }, 15000);
+      }, 30000); // Increased interval to reduce server load
     }
     
     return () => {
@@ -177,7 +258,7 @@ export default function DeploymentsDashboard({
         clearInterval(intervalId);
       }
     };
-  }, [deployments, refetch]);
+  }, [deployments.filter(d => d.status === "queued" || d.status === "pending").length, refetch]);
 
   const toggleLogs = (deploymentId: string) => {
     setExpandedLogs(expandedLogs === deploymentId ? null : deploymentId);
@@ -204,7 +285,6 @@ export default function DeploymentsDashboard({
     const match = gitUrl.match(/\/([^\/]+)(?:\.git)?$/);
     return match ? match[1] : gitUrl;
   };
-
   // Debounced refetch function to prevent excessive API calls
   const debouncedRefetch = useCallback(() => {
     // Clear any existing timeout
@@ -212,17 +292,21 @@ export default function DeploymentsDashboard({
       clearTimeout(refetchTimeoutRef.current);
     }
 
-    // Only refetch if at least 3 seconds have passed since the last refetch
+    // Only refetch if at least 5 seconds have passed since the last refetch (increased delay)
     const now = Date.now();
-    if (now - lastRefetchTime > 3000) {
+    if (now - lastRefetchTime > 5000) {
+      console.log('[Dashboard] Executing immediate refetch');
       refetch();
       setLastRefetchTime(now);
     } else {
       // Schedule a refetch after the debounce period
+      const delay = 5000 - (now - lastRefetchTime);
+      console.log(`[Dashboard] Scheduling refetch in ${delay}ms`);
       refetchTimeoutRef.current = setTimeout(() => {
+        console.log('[Dashboard] Executing scheduled refetch');
         refetch();
         setLastRefetchTime(Date.now());
-      }, 3000);
+      }, delay);
     }
   }, [lastRefetchTime, refetch]);
 
@@ -234,7 +318,6 @@ export default function DeploymentsDashboard({
       }
     };
   }, [refetchTimeoutRef]);
-
   if (loading) {
     return (
       <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
@@ -346,10 +429,8 @@ export default function DeploymentsDashboard({
                   <ExternalLink className="w-3 h-3" />
                   Visit
                 </a>
-              )}
-
-              {/* Logs dropdown button */}
-              {deployment.logs.length > 0 && (
+              )}              {/* Logs dropdown button */}
+              {(deployment.logs.length > 0 || getLogsForDeployment(deployment.id).length > 0) && (
                 <button
                   onClick={() => toggleLogs(deployment.id)}
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
@@ -367,20 +448,34 @@ export default function DeploymentsDashboard({
                 <MoreHorizontal className="w-4 h-4" />
               </button>
             </div>
-          </div>
-
-          {/* Logs section */}
-          {expandedLogs === deployment.id && deployment.logs.length > 0 && (
+          </div>          {/* Logs section */}
+          {expandedLogs === deployment.id && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <div className="bg-gray-900 rounded-lg p-3 max-h-48 overflow-y-auto">
+                {/* Render original logs first */}
                 {deployment.logs.map((log, index) => (
                   <div
-                    key={index}
+                    key={`original-${index}`}
                     className="text-green-400 font-mono text-xs mb-1"
                   >
                     {log}
                   </div>
                 ))}
+                {/* Render real-time logs */}
+                {getLogsForDeployment(deployment.id).map((log, index) => (
+                  <div
+                    key={`realtime-${index}`}
+                    className="text-green-400 font-mono text-xs mb-1"
+                  >
+                    {log}
+                  </div>
+                ))}
+                {/* Show message if no logs */}
+                {deployment.logs.length === 0 && getLogsForDeployment(deployment.id).length === 0 && (
+                  <div className="text-gray-400 font-mono text-xs">
+                    No logs available
+                  </div>
+                )}
               </div>
             </div>
           )}
