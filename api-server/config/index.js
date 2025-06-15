@@ -4,7 +4,9 @@ const requiredEnvVars = [
   'S3_ACCESS_KEY',
   'S3_SECRET_ACCESS_KEY',
   'S3_REGION',
-  'CORS_ORIGIN'
+  'CORS_ORIGIN',
+  'AWS_SUBNETS',
+  'AWS_SECURITY_GROUPS'
 ];
 
 const config = {
@@ -16,8 +18,12 @@ const config = {
     optionsSuccessStatus: 200
   },
   ECS: {
-    CLUSTER: "arn:aws:ecs:ap-southeast-2:010526241185:cluster/builder-cluster2",
-    TASK: "arn:aws:ecs:ap-southeast-2:010526241185:task-definition/builder-task",
+    CLUSTER: process.env.ECS_CLUSTER,
+    TASK: process.env.ECS_TASK,
+  },
+  AWS: {
+    SUBNETS: process.env.AWS_SUBNETS ? process.env.AWS_SUBNETS.split(',') : [],
+    SECURITY_GROUPS: process.env.AWS_SECURITY_GROUPS ? process.env.AWS_SECURITY_GROUPS.split(',') : [],
   }
 };
 

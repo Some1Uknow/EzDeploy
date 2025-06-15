@@ -80,16 +80,11 @@ const createProject = async (req, res) => {
       cluster: config.ECS.CLUSTER,
       taskDefinition: config.ECS.TASK,
       launchType: "FARGATE",
-      count: 1,
-      networkConfiguration: {
+      count: 1,      networkConfiguration: {
         awsvpcConfiguration: {
           assignPublicIp: "ENABLED",
-          subnets: [
-            "subnet-0daf3080430458a59",
-            "subnet-0e2425bbd184eb721",
-            "subnet-0c8a0d5df3090c76b",
-          ],
-          securityGroups: ["sg-0c5cc941c6b334176"],
+          subnets: config.AWS.SUBNETS,
+          securityGroups: config.AWS.SECURITY_GROUPS,
         },
       },
       overrides: {
