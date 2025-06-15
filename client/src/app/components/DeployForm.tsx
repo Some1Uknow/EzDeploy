@@ -55,11 +55,13 @@ export default function DeployForm({
     "github"
   );
   const [selectedRepository, setSelectedRepository] =
-    useState<GitHubRepository | null>(null);
-  const { data: session } = useSession();
+    useState<GitHubRepository | null>(null);  const { data: session } = useSession();
 
   // Use the projects hook for creating projects
-  const { createProject } = useProjects({ autoFetch: false });
+  const { createProject } = useProjects({ 
+    userId: session?.user?.id, 
+    autoFetch: false 
+  });
   const {
     repositories,
     loading: reposLoading,

@@ -5,8 +5,9 @@ import Footer from "../components/Footer";
 import DeployForm from "../components/DeployForm";
 import DeploymentsDashboard from "../components/DeploymentsDashboard";
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, LogIn } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
+import { ShimmerButton } from "../components/ui/shimmer-button";
 
 export default function DashboardPage() {
   const [activeDeployment, setActiveDeployment] = useState<string | null>(null);
@@ -27,7 +28,6 @@ export default function DashboardPage() {
     setActiveDeployment(deployment.projectSlug);
     setShowDeployModal(false);
   };
-
   if (isPending) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -38,12 +38,35 @@ export default function DashboardPage() {
       </div>
     );
   }
+  if (!session?.user) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <p className="text-xl text-gray-700 font-medium mb-6">
+            Please sign in to access the dashboard
+          </p>
+          <ShimmerButton
+            className="flex items-center justify-center gap-3 px-6 py-3 font-semibold"
+            shimmerColor="#ffffff"
+            background="rgba(0, 0, 0, 1)"
+            borderRadius="8px"
+            onClick={() => (window.location.href = "/signin")}
+          >
+            <LogIn className="w-5 h-5 text-white" />
+            <span className="text-white">Sign In</span>
+          </ShimmerButton>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <div className="pt-16">
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">          {/* Page Header */}
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {" "}
+          {/* Page Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">
@@ -52,7 +75,6 @@ export default function DashboardPage() {
               <p className="text-gray-600 mt-1">
                 Manage and monitor your application deployments
               </p>
-          
             </div>
             <button
               onClick={() => setShowDeployModal(true)}
@@ -61,10 +83,12 @@ export default function DashboardPage() {
               <Plus className="w-4 h-4" />
               New Deployment
             </button>
-          </div>{/* Deployments Dashboard */}
+          </div>{" "}
+          {/* Deployments Dashboard */}
           <DeploymentsDashboard
             onNewDeployment={() => setShowDeployModal(true)}
             newDeployment={newDeployment}
+            userId={session.user.id}
           />
         </main>
       </div>
@@ -97,7 +121,8 @@ export default function DashboardPage() {
                   </svg>
                 </button>
               </div>
-            </div>            <div className="p-6">
+            </div>{" "}
+            <div className="p-6">
               <DeployForm
                 onDeploymentStart={handleDeploymentStart}
                 activeDeployment={activeDeployment}

@@ -1,11 +1,22 @@
+"use client";
+
 import { ArrowRight, Zap, Globe, Shield } from "lucide-react";
 import { AnimatedGradientText } from "./ui/animated-gradient-text";
 import { ShimmerButton } from "./ui/shimmer-button";
 import { NumberTicker } from "./ui/number-ticker";
 import { GridPattern } from "./ui/grid-pattern";
 import { TextAnimate } from "./ui/text-animate";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Hero() {
+  const [animationKey, setAnimationKey] = useState(0);
+  // Force animation retrigger when component mounts
+  useEffect(() => {
+    setAnimationKey((prev) => prev + 1);
+  }, []);
+  const router = useRouter();
+
   return (
     <section className="relative pt-32 pb-20 bg-white overflow-hidden">
       {/* Grid Pattern Background */}
@@ -23,17 +34,20 @@ export default function Hero() {
           <div className="inline-flex items-center px-4 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm font-medium text-gray-700 mb-8">
             <Zap className="w-4 h-4 mr-2 text-black" />
             Modern Cloud-Native Deployment Platform
-          </div>
+          </div>{" "}
           {/* Main Heading with Animation */}
           <TextAnimate
+            key={`main-heading-${animationKey}`}
             animation="blurInUp"
             by="word"
             className="text-5xl sm:text-6xl lg:text-7xl font-bold text-black leading-tight tracking-tight"
             as="h1"
+            startOnView={false}
           >
             Deploy Any Web App
-          </TextAnimate>
+          </TextAnimate>{" "}
           <AnimatedGradientText
+            key={`gradient-text-${animationKey}`}
             className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-tight mb-8"
             colorFrom="#4f46e5"
             colorTo="#7c3aed"
@@ -43,11 +57,13 @@ export default function Hero() {
           </AnimatedGradientText>{" "}
           {/* Subtitle */}
           <TextAnimate
+            key={`subtitle-${animationKey}`}
             animation="fadeIn"
             by="word"
             delay={0.5}
             className="text-sm sm:text-xl text-gray-600 max-w-3xl mx-auto mb-12 leading-relaxed"
             as="p"
+            startOnView={false}
           >
             EzDeploy enables seamless deployment of web applications directly
             from Git repositories. Built with microservices architecture for
@@ -61,6 +77,7 @@ export default function Hero() {
               shimmerColor="#ffffff"
               background="rgba(0, 0, 0, 1)"
               borderRadius="8px"
+              onClick={() => router.push("/dashboard")}
             >
               <span className="text-white">Start Deploying</span>
               <ArrowRight className="w-5 h-5 ml-2 text-white" />
@@ -77,27 +94,32 @@ export default function Hero() {
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 bg-gray-50 rounded-lg mx-auto mb-4">
                 <Zap className="w-6 h-6 text-black" />
-              </div>
+              </div>{" "}
               <div className="text-3xl font-bold text-black mb-2">
-                <NumberTicker value={30} />s
+                <NumberTicker value={50} className="!text-black" />s
               </div>
               <div className="text-gray-600">Average Deploy Time</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 bg-gray-50 rounded-lg mx-auto mb-4">
                 <Globe className="w-6 h-6 text-black" />
-              </div>
+              </div>{" "}
               <div className="text-3xl font-bold text-black mb-2">
-                <NumberTicker value={99.9} decimalPlaces={1} />%
+                <NumberTicker
+                  value={99.9}
+                  decimalPlaces={1}
+                  className="!text-black"
+                />
+                %
               </div>
               <div className="text-gray-600">Uptime Guarantee</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 bg-gray-50 rounded-lg mx-auto mb-4">
                 <Shield className="w-6 h-6 text-black" />
-              </div>
+              </div>{" "}
               <div className="text-3xl font-bold text-black mb-2">
-                <NumberTicker value={100} />%
+                <NumberTicker value={100} className="!text-black" />%
               </div>
               <div className="text-gray-600">Secure Deployments</div>
             </div>

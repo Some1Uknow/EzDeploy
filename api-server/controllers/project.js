@@ -191,20 +191,23 @@ const createProject = async (req, res) => {
   }
 };
 
-// Get all projects
+// Get all projects (user-specific only)
 const getAllProjects = async (req, res) => {
   try {
     const { userId } = req.query;
-
-    let projects;
-    if (userId) {
-      projects = await db
-        .select()
-        .from(project)
-        .where(eq(project.userId, userId));
-    } else {
-      projects = await db.select().from(project);
-    }
+    
+    // Validate that userId is provided
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      return res.status(400).json({
+        status: "error",
+        message: "userId is required to fetch projects",
+      });
+    }    
+    // Always filter by userId - never fetch all projects from all users
+    const projects = await db
+      .select()
+      .from(project)
+      .where(eq(project.userId, userId.trim()));
 
     return res.json({
       status: "success",

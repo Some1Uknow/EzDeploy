@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Calendar,
   Globe,
@@ -35,17 +35,21 @@ interface DeploymentsDashboardProps {
     gitUrl: string;
     url: string;
   } | null;
+  userId: string;
 }
 
 export default function DeploymentsDashboard({
   onNewDeployment,
   newDeployment,
+  userId,
 }: DeploymentsDashboardProps) {
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [expandedLogs, setExpandedLogs] = useState<string | null>(null);
+  const [lastRefetchTime, setLastRefetchTime] = useState<number>(0);
+  const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use the projects hook for API management
-  const { projects, loading, error, refetch } = useProjects();
+  const { projects, loading, error, refetch } = useProjects({ userId });
 
   // Convert API projects to deployment format
   useEffect(() => {
@@ -55,8 +59,7 @@ export default function DeploymentsDashboard({
         projectName: project.name,
         gitUrl: project.repoUrl,
         status: mapStatus(project.status),
-        deploy_url:
-          project.deploy_url || `http://${project.id}.localhost:8000`,
+        deploy_url: project.deploy_url || `http://${project.id}.localhost:8000`,
         createdAt: project.createdAt,
         duration: calculateDuration(
           project.createdAt,
@@ -104,46 +107,77 @@ export default function DeploymentsDashboard({
       };
       setDeployments((prev) => [deployment, ...prev]);
     }
-  }, [newDeployment]); // Setup socket connection for real-time logs
+  }, [newDeployment]);  // Setup socket connection for real-time logs
   const socket = useSocket({
     url: env.SOCKET_URL,
-    onLog: (message: string) => {
-      console.log("Received log:", message);
+    onLog: (buildId, text) => {
+      console.log("Received log:", buildId, text);
 
       // Update logs for the most recent deployment (the one that's building)
       setDeployments((prev) =>
-        prev.map((deployment) => {
-          if (
-            deployment.status === "queued" ||
-            deployment.status === "pending"
-          ) {
-            return {
-              ...deployment,
-              status: "pending",
-              logs: [
-                ...deployment.logs,
-                `[${new Date().toLocaleTimeString()}] ${message}`,
-              ],
-            };
+        prev.map((d) => {
+          if (d.id !== buildId) return d; // 1) ignore other builds
+          
+          // Update status based on log content
+          let updatedStatus = d.status;
+          if (d.status === "queued") {
+            updatedStatus = "pending";
+          } else if (text.includes("Done") || text.includes("deployed")) {
+            updatedStatus = "success";
+          } else if (text.includes("failed")) {
+            updatedStatus = "error";
           }
-          return deployment;
+          
+          return {
+            ...d,
+            status: updatedStatus,
+            logs: [...d.logs, `[${new Date().toLocaleTimeString()}] ${text}`],
+          };
         })
-      ); // Also refetch projects to get updated status from backend
-      if (message.includes("deployed") || message.includes("failed")) {
-        setTimeout(() => refetch(), 2000);
+      );
+
+      // Trigger debounced refetch when important log messages are detected
+      if (text.includes("deployed") || text.includes("failed") || text.includes("Done")) {
+        console.log("Important log detected, triggering refetch:", text);
+        debouncedRefetch();
       }
     },
   });
 
   // Subscribe to logs channel when there's an active deployment
   useEffect(() => {
-    if (socket && newDeployment) {
-      // This is the correct channel format to match what the server is emitting on
-      const channel = `logs:${newDeployment.projectSlug}`;
-      console.log(`Subscribing to channel: ${channel}`);
-      socket.emit("subscribe", channel);
+    if (!socket) return;
+
+    deployments
+      .filter((d) => d.status === "queued" || d.status === "pending")
+      .forEach((d) => {
+        const channel = `logs:${d.id}`;
+        socket.emit("subscribe", channel);
+      });
+  }, [socket, deployments]);
+
+  // Periodically refetch if there are pending deployments
+  useEffect(() => {
+    const hasPendingDeployments = deployments.some(
+      (d) => d.status === "queued" || d.status === "pending"
+    );
+    
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    if (hasPendingDeployments) {
+      // Refetch every 15 seconds if there are pending deployments
+      intervalId = setInterval(() => {
+        console.log("Auto-refetching due to pending deployments");
+        refetch();
+      }, 15000);
     }
-  }, [socket, newDeployment]);
+    
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [deployments, refetch]);
 
   const toggleLogs = (deploymentId: string) => {
     setExpandedLogs(expandedLogs === deploymentId ? null : deploymentId);
@@ -170,6 +204,36 @@ export default function DeploymentsDashboard({
     const match = gitUrl.match(/\/([^\/]+)(?:\.git)?$/);
     return match ? match[1] : gitUrl;
   };
+
+  // Debounced refetch function to prevent excessive API calls
+  const debouncedRefetch = useCallback(() => {
+    // Clear any existing timeout
+    if (refetchTimeoutRef.current) {
+      clearTimeout(refetchTimeoutRef.current);
+    }
+
+    // Only refetch if at least 3 seconds have passed since the last refetch
+    const now = Date.now();
+    if (now - lastRefetchTime > 3000) {
+      refetch();
+      setLastRefetchTime(now);
+    } else {
+      // Schedule a refetch after the debounce period
+      refetchTimeoutRef.current = setTimeout(() => {
+        refetch();
+        setLastRefetchTime(Date.now());
+      }, 3000);
+    }
+  }, [lastRefetchTime, refetch]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refetchTimeoutRef.current) {
+        clearTimeout(refetchTimeoutRef.current);
+      }
+    };
+  }, [refetchTimeoutRef]);
 
   if (loading) {
     return (

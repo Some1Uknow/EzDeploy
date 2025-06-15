@@ -23,7 +23,6 @@ const ReactLogo = () => (
   />
 );
 
-
 interface RepositorySelectorProps {
   repositories: GitHubRepository[];
   onSelect: (repository: GitHubRepository) => void;
@@ -53,13 +52,13 @@ export default function RepositorySelector({
   );
 
   // Separate public and private repositories
-  const publicRepos = filteredRepositories.filter(repo => !repo.private);
-  const privateRepos = filteredRepositories.filter(repo => repo.private);
+  const publicRepos = filteredRepositories.filter((repo) => !repo.private);
+  const privateRepos = filteredRepositories.filter((repo) => repo.private);
 
   const handleRepoSelect = (repo: GitHubRepository) => {
     // Only allow selection of public repositories
     if (repo.private) return;
-    
+
     setSelectedRepo(repo);
     onSelect(repo);
   };
@@ -145,8 +144,8 @@ export default function RepositorySelector({
           className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm"
         />
       </div>
-
-      {/* Repository List */}      <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg">
+      {/* Repository List */}{" "}
+      <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg">
         {filteredRepositories.length === 0 ? (
           <div className="p-6 text-center text-gray-500">
             {searchTerm
@@ -161,7 +160,9 @@ export default function RepositorySelector({
                 key={repo.id}
                 onClick={() => handleRepoSelect(repo)}
                 className={`w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200 ${
-                  selectedRepo?.id === repo.id ? "bg-blue-50 border-blue-200" : ""
+                  selectedRepo?.id === repo.id
+                    ? "bg-blue-50 border-blue-200"
+                    : ""
                 }`}
               >
                 <div className="flex items-start justify-between">
@@ -176,7 +177,9 @@ export default function RepositorySelector({
                       <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
                         Public
                       </span>
-                      {repo.fork && <GitFork className="w-3 h-3 text-gray-400" />}
+                      {repo.fork && (
+                        <GitFork className="w-3 h-3 text-gray-400" />
+                      )}
                     </div>
                     {repo.description && (
                       <p className="text-sm text-gray-600 mb-2 line-clamp-2 overflow-hidden">
@@ -190,16 +193,15 @@ export default function RepositorySelector({
                           <span>{repo.language}</span>
                         </div>
                       )}
-
                       <div className="flex items-center gap-1">
                         <Star className="w-3 h-3" />
                         <span>{repo.stargazers_count}</span>
                       </div>
-
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         <span>{formatDate(repo.updated_at)}</span>
-                      </div>                    </div>
+                      </div>{" "}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2 ml-4">
@@ -217,7 +219,6 @@ export default function RepositorySelector({
                 </div>
               </button>
             ))}
-            
             {/* Private Repositories (Disabled) */}
             {privateRepos.map((repo) => (
               <div
@@ -236,7 +237,9 @@ export default function RepositorySelector({
                       <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
                         Private (Soon)
                       </span>
-                      {repo.fork && <GitFork className="w-3 h-3 text-gray-400" />}
+                      {repo.fork && (
+                        <GitFork className="w-3 h-3 text-gray-400" />
+                      )}
                     </div>
                     {repo.description && (
                       <p className="text-sm text-gray-500 mb-2 line-clamp-2 overflow-hidden">
@@ -261,7 +264,8 @@ export default function RepositorySelector({
                         <span>{formatDate(repo.updated_at)}</span>
                       </div>
                     </div>
-                  </div>                  <div className="flex items-center gap-2 ml-4">
+                  </div>{" "}
+                  <div className="flex items-center gap-2 ml-4">
                     <a
                       href={repo.html_url}
                       target="_blank"
@@ -275,10 +279,10 @@ export default function RepositorySelector({
                   </div>
                 </div>
               </div>
-            ))}          </>
+            ))}{" "}
+          </>
         )}
       </div>
-
       {selectedRepo && (
         <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
           <p className="text-sm text-blue-800">

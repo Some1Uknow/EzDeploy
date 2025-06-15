@@ -1,224 +1,446 @@
-import { BookOpen, Code, Terminal, Settings, ExternalLink } from "lucide-react";
+"use client";
+
+import React, { forwardRef, useRef } from "react";
+import { GitBranch, Cog, Upload, Globe, Database, Cloud } from "lucide-react";
 import { TextAnimate } from './ui/text-animate';
-import { ShimmerButton } from './ui/shimmer-button';
-import { AnimatedGradientText } from './ui/animated-gradient-text';
 import { GridPattern } from './ui/grid-pattern';
+import { cn } from '@/lib/utils';
 
-export default function Documentation() {
-  const docs = [
-    {
-      title: "Quick Start Guide",
-      description: "Get up and running with EzDeploy in under 5 minutes.",
-      icon: BookOpen,
-      color: "bg-blue-50 text-blue-600",
-      sections: [
-        "Environment Setup",
-        "First Deployment",
-        "Monitoring Builds",
-        "Custom Domains",
-      ],
-    },
-    {
-      title: "API Reference",
-      description: "Complete documentation for all EzDeploy REST endpoints.",
-      icon: Code,
-      color: "bg-green-50 text-green-600",
-      sections: [
-        "Authentication",
-        "Deployment API",
-        "Status Endpoints",
-        "WebSocket Events",
-      ],
-    },
-    {
-      title: "CLI Tools",
-      description: "Command-line tools for advanced deployment workflows.",
-      icon: Terminal,
-      color: "bg-purple-50 text-purple-600",
-      sections: [
-        "Installation",
-        "Configuration",
-        "Batch Deployments",
-        "Automation Scripts",
-      ],
-    },
-    {
-      title: "Configuration",
-      description: "Advanced configuration options and environment setup.",
-      icon: Settings,
-      color: "bg-orange-50 text-orange-600",
-      sections: [
-        "Environment Variables",
-        "AWS Setup",
-        "Custom Build Scripts",
-        "Security Settings",
-      ],
-    },
-  ];
+// First, let's create the AnimatedBeam component since it's not available
+interface AnimatedBeamProps {
+  className?: string;
+  containerRef: React.RefObject<HTMLElement | null>;
+  fromRef: React.RefObject<HTMLElement | null>;
+  toRef: React.RefObject<HTMLElement | null>;
+  curvature?: number;
+  reverse?: boolean;
+  pathColor?: string;
+  pathWidth?: number;
+  pathOpacity?: number;
+  gradientStartColor?: string;
+  gradientStopColor?: string;
+  delay?: number;
+  duration?: number;
+  startXOffset?: number;
+  startYOffset?: number;
+  endXOffset?: number;
+  endYOffset?: number;
+}
 
-  const codeExample = `// Deploy a project using the API
-const response = await fetch('http://localhost:9000/project', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    gitURL: 'https://github.com/username/repo.git',
-    slug: 'my-project'
-  })
+const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
+  className,
+  containerRef,
+  fromRef,
+  toRef,
+  curvature = 0,
+  reverse = false,
+  duration = Math.random() * 3 + 4,
+  delay = 0,
+  pathColor = "gray",
+  pathWidth = 2,
+  pathOpacity = 0.2,
+  gradientStartColor = "#ffaa40",
+  gradientStopColor = "#9c40ff",
+  startXOffset = 0,
+  startYOffset = 0,
+  endXOffset = 0,
+  endYOffset = 0,
+}) => {
+  const id = React.useId();
+  const [pathD, setPathD] = React.useState("");
+  const [svgDimensions, setSvgDimensions] = React.useState({ width: 0, height: 0 });
+
+  const gradientCoordinates = reverse
+    ? {
+        x1: ["90%", "-10%"],
+        x2: ["100%", "0%"],
+        y1: ["0%", "0%"],
+        y2: ["0%", "0%"],
+      }
+    : {
+        x1: ["10%", "110%"],
+        x2: ["0%", "100%"],
+        y1: ["0%", "0%"],
+        y2: ["0%", "0%"],
+      };
+
+  React.useEffect(() => {
+    const updatePath = () => {
+      if (containerRef.current && fromRef.current && toRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const rectA = fromRef.current.getBoundingClientRect();
+        const rectB = toRef.current.getBoundingClientRect();
+
+        const svgWidth = containerRect.width;
+        const svgHeight = containerRect.height;
+        setSvgDimensions({ width: svgWidth, height: svgHeight });
+
+        const startX =
+          rectA.left - containerRect.left + rectA.width / 2 + startXOffset;
+        const startY =
+          rectA.top - containerRect.top + rectA.height / 2 + startYOffset;
+        const endX =
+          rectB.left - containerRect.left + rectB.width / 2 + endXOffset;
+        const endY =
+          rectB.top - containerRect.top + rectB.height / 2 + endYOffset;
+
+        const controlY = startY - curvature;
+        const d = `M ${startX},${startY} Q ${
+          (startX + endX) / 2
+        },${controlY} ${endX},${endY}`;
+        setPathD(d);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      updatePath();
+    });
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    updatePath();
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [
+    containerRef,
+    fromRef,
+    toRef,
+    curvature,
+    startXOffset,
+    startYOffset,
+    endXOffset,
+    endYOffset,
+  ]);
+
+  return (
+    <svg
+      fill="none"
+      width={svgDimensions.width}
+      height={svgDimensions.height}
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn(
+        "pointer-events-none absolute left-0 top-0 transform-gpu stroke-2",
+        className,
+      )}
+      viewBox={`0 0 ${svgDimensions.width} ${svgDimensions.height}`}
+    >
+      <path
+        d={pathD}
+        stroke={pathColor}
+        strokeWidth={pathWidth}
+        strokeOpacity={pathOpacity}
+        strokeLinecap="round"
+      />
+      <path
+        d={pathD}
+        strokeWidth={pathWidth}
+        stroke={`url(#${id})`}
+        strokeOpacity="1"
+        strokeLinecap="round"
+      />
+      <defs>
+        <linearGradient
+          id={id}
+          gradientUnits="userSpaceOnUse"
+          x1="0%"
+          x2="0%"
+          y1="0%"
+          y2="0%"
+        >
+          <stop stopColor={gradientStartColor} stopOpacity="0" />
+          <stop stopColor={gradientStartColor} />
+          <stop offset="32.5%" stopColor={gradientStopColor} />
+          <stop offset="100%" stopColor={gradientStopColor} stopOpacity="0" />
+          <animateTransform
+            attributeName="gradientTransform"
+            type="translate"
+            values="0,0;100,0;0,0"
+            dur={`${duration}s`}
+            begin={`${delay}s`}
+            repeatCount="indefinite"
+          />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+};
+
+const Circle = forwardRef<
+  HTMLDivElement,
+  { className?: string; children?: React.ReactNode }
+>(({ className, children }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "z-10 flex size-16 items-center justify-center rounded-full border-2 bg-white p-4 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
 });
 
-const data = await response.json();
-console.log('Deployment URL:', data.data.url);`;
-  return (
-    <>
-      <section id="docs" className="relative py-20 bg-white overflow-hidden">
-        {/* Grid Pattern Background */}
-        <GridPattern
-          width={40}
-          height={40}
-          x={-1}
-          y={-1}
-          className="absolute inset-0 h-full w-full fill-gray-400/20 stroke-gray-400/20 [mask-image:radial-gradient(800px_circle_at_center,white,transparent)]"
-        />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <TextAnimate
-              animation="blurInUp"
-              by="word"
-              className="text-4xl font-bold text-black mb-4"
-              as="h2"
-            >
-              Documentation & Guides
-            </TextAnimate>
-            <TextAnimate
-              animation="fadeIn"
-              by="word"
-              delay={0.3}
-              className="text-xl text-gray-600 max-w-3xl mx-auto"
-              as="p"
-            >
-              Everything you need to get started with EzDeploy, from basic
-              deployments to advanced configuration and automation.
-            </TextAnimate>
-          </div>
+Circle.displayName = "Circle";
 
-          {/* Documentation Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-            {docs.map((doc, index) => (
-              <div
-                key={index}
-                className="bg-gray-50 rounded-2xl border border-gray-100 p-8 hover:border-gray-200 hover:shadow-sm transition-all duration-300 group"
-              >
-                <div className="flex items-start space-x-4">
-                  <div
-                    className={`flex items-center justify-center w-12 h-12 rounded-lg ${doc.color} group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    <doc.icon className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-black mb-2 group-hover:text-gray-900">
-                      {doc.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4">{doc.description}</p>
-                    <ul className="space-y-2">
-                      {doc.sections.map((section, sectionIndex) => (
-                        <li
-                          key={sectionIndex}
-                          className="flex items-center text-sm text-gray-500"
-                        >
-                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3" />
-                          {section}
-                        </li>
-                      ))}
-                    </ul>            <div className="mt-6">
-              <ShimmerButton
-                className="inline-flex items-center text-white font-medium"
-                shimmerColor="#ffffff"
-                background="rgba(0, 0, 0, 1)"
-                borderRadius="8px"
-              >
-                Read Documentation
-                <ExternalLink className="w-4 h-4 ml-2" />
-              </ShimmerButton>
-            </div>
-                  </div>
+export default function Documentation() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const step1Ref = useRef<HTMLDivElement>(null);
+  const step2Ref = useRef<HTMLDivElement>(null);
+  const step3Ref = useRef<HTMLDivElement>(null);
+  const step4Ref = useRef<HTMLDivElement>(null);
+  const step5Ref = useRef<HTMLDivElement>(null);
+  const step6Ref = useRef<HTMLDivElement>(null);
+
+  const steps = [
+    {
+      ref: step1Ref,
+      icon: GitBranch,
+      title: "Git Repository",
+      description: "Provide your GitHub repository URL",
+      color: "border-orange-500 bg-orange-50",
+      iconColor: "text-orange-600"
+    },
+    {
+      ref: step2Ref,
+      icon: Cloud,
+      title: "API Request",
+      description: "POST request to EzDeploy API server",
+      color: "border-blue-500 bg-blue-50",
+      iconColor: "text-blue-600"
+    },
+    {
+      ref: step3Ref,
+      icon: Cog,
+      title: "ECS Task",
+      description: "AWS Fargate container starts building",
+      color: "border-purple-500 bg-purple-50",
+      iconColor: "text-purple-600"
+    },
+    {
+      ref: step4Ref,
+      icon: Database,
+      title: "Build Process",
+      description: "Clone, install dependencies, and build",
+      color: "border-green-500 bg-green-50",
+      iconColor: "text-green-600"
+    },
+    {
+      ref: step5Ref,
+      icon: Upload,
+      title: "S3 Upload",
+      description: "Built files uploaded to AWS S3",
+      color: "border-red-500 bg-red-50",
+      iconColor: "text-red-600"
+    },
+    {
+      ref: step6Ref,
+      icon: Globe,
+      title: "Live Website",
+      description: "Your app is live with custom subdomain",
+      color: "border-indigo-500 bg-indigo-50",
+      iconColor: "text-indigo-600"
+    }
+  ];
+
+  return (
+    <section id="docs" className="relative py-20 bg-white overflow-hidden">
+      {/* Grid Pattern Background */}
+      <GridPattern
+        width={40}
+        height={40}
+        x={-1}
+        y={-1}
+        className="absolute inset-0 h-full w-full fill-gray-400/20 stroke-gray-400/20 [mask-image:radial-gradient(800px_circle_at_center,white,transparent)]"
+      />
+      
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <TextAnimate
+            animation="blurInUp"
+            by="word"
+            className="text-4xl font-bold text-black mb-4"
+            as="h2"
+          >
+            How EzDeploy Works
+          </TextAnimate>
+          <TextAnimate
+            animation="fadeIn"
+            by="word"
+            delay={0.3}
+            className="text-xl text-gray-600 max-w-3xl mx-auto"
+            as="p"
+          >
+            From Git repository to live website in 6 simple steps
+          </TextAnimate>
+        </div>
+
+        {/* Flow Chart */}
+        <div
+          className="relative flex h-[600px] w-full items-center justify-center overflow-hidden"
+          ref={containerRef}
+        >
+          {/* Steps arranged in a flow */}
+          <div className="flex size-full max-w-6xl flex-col items-stretch justify-between gap-8">
+            {/* Top Row */}            <div className="flex flex-row items-center justify-between">
+              <div className="flex flex-col items-center space-y-4">
+                <Circle ref={step1Ref} className={steps[0].color}>
+                  {React.createElement(steps[0].icon, { className: `w-8 h-8 ${steps[0].iconColor}` })}
+                </Circle>
+                <div className="text-center max-w-32">
+                  <h3 className="font-semibold text-sm text-black">{steps[0].title}</h3>
+                  <p className="text-xs text-gray-600 mt-1">{steps[0].description}</p>
                 </div>
               </div>
-            ))}
+
+              <div className="flex flex-col items-center space-y-4">
+                <Circle ref={step2Ref} className={steps[1].color}>
+                  {React.createElement(steps[1].icon, { className: `w-8 h-8 ${steps[1].iconColor}` })}
+                </Circle>
+                <div className="text-center max-w-32">
+                  <h3 className="font-semibold text-sm text-black">{steps[1].title}</h3>
+                  <p className="text-xs text-gray-600 mt-1">{steps[1].description}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center space-y-4">
+                <Circle ref={step3Ref} className={steps[2].color}>
+                  {React.createElement(steps[2].icon, { className: `w-8 h-8 ${steps[2].iconColor}` })}
+                </Circle>
+                <div className="text-center max-w-32">
+                  <h3 className="font-semibold text-sm text-black">{steps[2].title}</h3>
+                  <p className="text-xs text-gray-600 mt-1">{steps[2].description}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Row */}
+            <div className="flex flex-row items-center justify-between">
+              <div className="flex flex-col items-center space-y-4">
+                <Circle ref={step6Ref} className={steps[5].color}>
+                  {React.createElement(steps[5].icon, { className: `w-8 h-8 ${steps[5].iconColor}` })}
+                </Circle>
+                <div className="text-center max-w-32">
+                  <h3 className="font-semibold text-sm text-black">{steps[5].title}</h3>
+                  <p className="text-xs text-gray-600 mt-1">{steps[5].description}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center space-y-4">
+                <Circle ref={step5Ref} className={steps[4].color}>
+                  {React.createElement(steps[4].icon, { className: `w-8 h-8 ${steps[4].iconColor}` })}
+                </Circle>
+                <div className="text-center max-w-32">
+                  <h3 className="font-semibold text-sm text-black">{steps[4].title}</h3>
+                  <p className="text-xs text-gray-600 mt-1">{steps[4].description}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center space-y-4">
+                <Circle ref={step4Ref} className={steps[3].color}>
+                  {React.createElement(steps[3].icon, { className: `w-8 h-8 ${steps[3].iconColor}` })}
+                </Circle>
+                <div className="text-center max-w-32">
+                  <h3 className="font-semibold text-sm text-black">{steps[3].title}</h3>
+                  <p className="text-xs text-gray-600 mt-1">{steps[3].description}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Code Example */}
-          <div className="bg-gray-50 rounded-2xl border border-gray-200 p-8">
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold text-black mb-2">
-                Quick Start Example
-              </h3>
-              <p className="text-gray-600">
-                Deploy your first project with a simple API call.
-              </p>
-            </div>
+          {/* Animated Beams */}
+          <AnimatedBeam
+            containerRef={containerRef}
+            fromRef={step1Ref}
+            toRef={step2Ref}
+            duration={3}
+            delay={0}
+            gradientStartColor="#f97316"
+            gradientStopColor="#3b82f6"
+          />
+          <AnimatedBeam
+            containerRef={containerRef}
+            fromRef={step2Ref}
+            toRef={step3Ref}
+            duration={3}
+            delay={0.5}
+            gradientStartColor="#3b82f6"
+            gradientStopColor="#8b5cf6"
+          />
+          <AnimatedBeam
+            containerRef={containerRef}
+            fromRef={step3Ref}
+            toRef={step4Ref}
+            duration={3}
+            delay={1}
+            curvature={75}
+            gradientStartColor="#8b5cf6"
+            gradientStopColor="#10b981"
+          />
+          <AnimatedBeam
+            containerRef={containerRef}
+            fromRef={step4Ref}
+            toRef={step5Ref}
+            duration={3}
+            delay={1.5}
+            gradientStartColor="#10b981"
+            gradientStopColor="#ef4444"
+          />
+          <AnimatedBeam
+            containerRef={containerRef}
+            fromRef={step5Ref}
+            toRef={step6Ref}
+            duration={3}
+            delay={2}
+            gradientStartColor="#ef4444"
+            gradientStopColor="#6366f1"
+          />
+        </div>
 
-            <div className="bg-black rounded-xl p-6 overflow-x-auto">
-              <pre className="text-green-400 font-mono text-sm leading-relaxed">
-                <code>{codeExample}</code>
-              </pre>
-            </div>            <div className="mt-6 flex flex-col sm:flex-row gap-4">
-              <ShimmerButton
-                className="inline-flex items-center justify-center px-6 py-3 font-medium rounded-lg"
-                shimmerColor="#ffffff"
-                background="rgba(0, 0, 0, 1)"
-                borderRadius="8px"
-              >
-                <BookOpen className="w-5 h-5 mr-2 text-white" />
-                <span className="text-white">View Full Documentation</span>
-              </ShimmerButton>
-              <button className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:border-gray-400 hover:text-black transition-colors duration-200">
-                <Code className="w-5 h-5 mr-2" />
-                API Reference
-              </button>
+        {/* Key Features */}
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="text-center p-6 bg-gray-50 rounded-xl">
+            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 text-blue-600 rounded-lg mx-auto mb-4">
+              <Cloud className="w-6 h-6" />
             </div>
+            <h4 className="text-lg font-semibold text-black mb-2">
+              Serverless Architecture
+            </h4>
+            <p className="text-gray-600 text-sm">
+              Built on AWS ECS Fargate for automatic scaling and zero server management.
+            </p>
           </div>
 
-          {/* Support Section */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-blue-50 text-blue-600 rounded-lg mx-auto mb-4">
-                <BookOpen className="w-6 h-6" />
-              </div>
-              <h4 className="text-lg font-semibold text-black mb-2">
-                Documentation
-              </h4>
-              <p className="text-gray-600 text-sm">
-                Comprehensive guides and API documentation for all features.
-              </p>
+          <div className="text-center p-6 bg-gray-50 rounded-xl">
+            <div className="flex items-center justify-center w-12 h-12 bg-green-100 text-green-600 rounded-lg mx-auto mb-4">
+              <Cog className="w-6 h-6" />
             </div>
+            <h4 className="text-lg font-semibold text-black mb-2">
+              Real-time Monitoring
+            </h4>
+            <p className="text-gray-600 text-sm">
+              Watch your builds in real-time with WebSocket connections and live logs.
+            </p>
+          </div>
 
-            <div className="text-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-green-50 text-green-600 rounded-lg mx-auto mb-4">
-                <Terminal className="w-6 h-6" />
-              </div>
-              <h4 className="text-lg font-semibold text-black mb-2">
-                Community
-              </h4>
-              <p className="text-gray-600 text-sm">
-                Join our community for support, tips, and best practices.
-              </p>
+          <div className="text-center p-6 bg-gray-50 rounded-xl">
+            <div className="flex items-center justify-center w-12 h-12 bg-purple-100 text-purple-600 rounded-lg mx-auto mb-4">
+              <Globe className="w-6 h-6" />
             </div>
-
-            <div className="text-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-purple-50 text-purple-600 rounded-lg mx-auto mb-4">
-                <Settings className="w-6 h-6" />
-              </div>
-              <h4 className="text-lg font-semibold text-black mb-2">Support</h4>
-              <p className="text-gray-600 text-sm">
-                24/7 support for enterprise customers and priority assistance.
-              </p>
-            </div>
+            <h4 className="text-lg font-semibold text-black mb-2">
+              Instant Deployment
+            </h4>
+            <p className="text-gray-600 text-sm">
+              Your apps are live instantly with custom subdomains and CDN delivery.
+            </p>
           </div>
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }
