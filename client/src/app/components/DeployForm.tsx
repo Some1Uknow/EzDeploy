@@ -11,12 +11,12 @@ import { Check } from "lucide-react";
 import {
   useGitHubRepositories,
   GitHubRepository,
-} from "../../lib/hooks/useGitHubRepositories";
-import { signIn } from "../../lib/auth-client";
-import { handleApiError } from "../../lib/api";
-import { useProjects } from "../../lib/hooks/useProjects";
+} from "@/lib/hooks/useGitHubRepositories";
+import { signIn } from "@/lib/auth-client";
+import { handleApiError } from "@/lib/api";
+import { useProjects } from "@/lib/hooks/useProjects";
 import RepositorySelector from "./RepositorySelector";
-import { useSession } from "../../lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 
 interface DeployFormProps {
   onDeploymentStart: (deployment: {
@@ -55,13 +55,12 @@ export default function DeployForm({
     "github"
   );
   const [selectedRepository, setSelectedRepository] =
-    useState<GitHubRepository | null>(null);
-  const { data: session } = useSession();
+    useState<GitHubRepository | null>(null);  const { data: session } = useSession();
 
   // Use the projects hook for creating projects
-  const { createProject } = useProjects({
-    userId: session?.user?.id,
-    autoFetch: false,
+  const { createProject } = useProjects({ 
+    userId: session?.user?.id, 
+    autoFetch: false 
   });
   const {
     repositories,
