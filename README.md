@@ -2,7 +2,7 @@
 
 **EzDeploy** is a modern, cloud-native deployment platform that enables seamless deployment of web applications directly from Git repositories. Built with a microservices architecture, EzDeploy automatically builds and deploys your projects to a scalable infrastructure.
 
-## Demo Video - <iframe width="560" height="315" src="https://www.youtube.com/embed/OkHAuKnk19s?si=FUv6W1Zbi4JSXIJG" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+## Demo Video - https://youtu.be/OkHAuKnk19s
 
 ## 🚀 Features
 
